@@ -39,7 +39,7 @@ bool EXPECT_ERROR(VM &vm, const char *msg, bool verbose=false)
     VM_exec_status status = vm.exec(verbose);
     if (status.is_status_ok())
     {
-        cerr << "[FAIL] " << msg << ", expected Error, got" << status.get_program_value() << "\n";
+        cerr << "[FAIL] " << msg << ", expected Error, got " << status.get_program_value() << "\n";
         return false;
     }
     else
@@ -66,7 +66,7 @@ bool EXPECT_VALUE(VM &vm, const char *msg, int value)
         }
         else
         {
-            cerr << "[FAIL] " << msg << ", expected " << value << ", got" << program_value << "\n";
+            cerr << "[FAIL] " << msg << ", expected " << value << ", got " << program_value << "\n";
             return false;
         }
     }
@@ -270,7 +270,7 @@ bool unknown_label()
     VM vm;
 
     vm.push(1);
-    vm.label("X");
+    vm.jmp("X");
 
     return EXPECT_ERROR(vm, "Unknown Label");
 }
@@ -286,6 +286,42 @@ bool run_too_long()
 
     return EXPECT_ERROR(vm, "Run Too Long");
 }
+
+bool cmp_too_few()
+{
+    VM vm;
+    vm.push(1);
+    vm.cmp();
+    return EXPECT_ERROR(vm, "Cmp Too Few");
+}
+
+bool cmp_lt()
+{
+    VM vm;
+    vm.push(1);
+    vm.push(2);
+    vm.cmp();
+    return EXPECT_VALUE(vm, "Cmp LT", -1);
+}
+
+bool cmp_eq()
+{
+    VM vm;
+    vm.push(2);
+    vm.push(2);
+    vm.cmp();
+    return EXPECT_VALUE(vm, "Cmp EQ", 0);
+}
+
+bool cmp_gt()
+{
+    VM vm;
+    vm.push(2);
+    vm.push(1);
+    vm.cmp();
+    return EXPECT_VALUE(vm, "Cmp GT", 1);
+}
+
 
 } // namespace
 
@@ -319,6 +355,11 @@ int main(void)
     runner(unknown_label);
     runner(duplicate_label);
     runner(run_too_long);
+
+    runner(cmp_too_few);
+    runner(cmp_lt);
+    runner(cmp_eq);
+    runner(cmp_gt);
 
     return runner.report();
 }

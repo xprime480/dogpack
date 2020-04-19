@@ -20,6 +20,24 @@ private:
     const std::string msg;
 };
 
+class VM_labels
+{
+public:
+    VM_labels();
+
+    size_t size() const;
+    int find(std::string const& name) const;
+    int new_label(std::string const & name, int location);
+    int add_or_update(std::string const & name, int location);
+    int pc_at(int index) const;
+    std::string const & name_at(int index) const;
+
+    void dump() const;
+
+private:
+    std::vector<std::pair<std::string, int>> labels;
+};
+
 class VM
 {
 private:
@@ -34,7 +52,7 @@ private:
     static const OPCODE SUB = 5;
     static const OPCODE MUL = 6;
     static const OPCODE DIV = 7;
-
+    static const OPCODE CMP = 8;
     static const OPCODE JMP = 9;
 
 public:
@@ -47,9 +65,9 @@ public:
     void sub();
     void mul();
     void div();
-
-    void jmp(const std::string & target);
-    void label(const std::string & target);
+    void cmp();
+    void jmp(const std::string &target);
+    void label(const std::string &target);
 
     VM_exec_status exec(bool verbose = false) const;
 
@@ -58,14 +76,14 @@ private:
     unsigned int program_size;
     bool valid_program;
 
-    std::vector<std::pair<std::string, int>> labels;
+    VM_labels labels;
 
     bool maybe_add_op(OPCODE op);
     bool maybe_add_arg(int arg);
-    int find_label_index(std::string const & target);
+    int find_label_index(std::string const &target);
     void program_too_big();
 
-    void trace(unsigned int pc, int * stack, unsigned int sp) const;
+    void trace(unsigned int pc, int *stack, unsigned int sp) const;
 };
 
 #endif
