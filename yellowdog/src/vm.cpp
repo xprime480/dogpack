@@ -118,7 +118,10 @@ void VM::label(const std::string &target)
 
 VM_exec_status VM::exec(bool verbose) const
 {
-    cerr << "Starting program execution\n";
+    if (verbose)
+    {
+        cerr << "Starting program execution\n";
+    }
 
     if (!valid_program)
     {

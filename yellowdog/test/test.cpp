@@ -265,6 +265,16 @@ bool duplicate_label()
     return EXPECT_ERROR(vm, "Duplicate Label");
 }
 
+bool unknown_label()
+{
+    VM vm;
+
+    vm.push(1);
+    vm.label("X");
+
+    return EXPECT_ERROR(vm, "Unknown Label");
+}
+
 bool run_too_long()
 {
     VM vm;
@@ -306,6 +316,7 @@ int main(void)
     runner(overflow_push);
     runner(overflow_dup);
 
+    runner(unknown_label);
     runner(duplicate_label);
     runner(run_too_long);
 
