@@ -5,6 +5,31 @@
 
 using namespace std;
 
+VM_exec_status::VM_exec_status(int value)
+    : is_ok(true), value(value), msg("Execution OK")
+{
+}
+
+VM_exec_status::VM_exec_status(const char *msg)
+    : is_ok(false), value(-1), msg(msg)
+{
+}
+
+bool VM_exec_status::is_status_ok() const
+{
+    return is_ok;
+}
+
+int VM_exec_status::get_program_value() const
+{
+    return value;
+}
+
+const std::string &VM_exec_status::get_message() const
+{
+    return msg;
+}
+
 VM::VM()
     : program_size(0u), valid_program(true)
 {
@@ -56,12 +81,11 @@ void VM::div()
     maybe_add_op(DIV);
 }
 
-void VM::exec() const
+VM_exec_status VM::exec() const
 {
     if (!valid_program)
     {
-        cerr << "Cannot execute invalid program\n";
-        return;
+        return VM_exec_status("Cannot execute invalid program");
     }
 
     int stack[1024];
@@ -86,8 +110,7 @@ void VM::exec() const
         {
             if (0 == sp)
             {
-                cerr << "Cannot POP empty stack\n";
-                return;
+                return VM_exec_status("Cannot POP empty stack");
             }
             --sp;
         }
@@ -97,8 +120,7 @@ void VM::exec() const
         {
             if (0 == sp)
             {
-                cerr << "Cannot DUP empty stack\n";
-                return;
+                return VM_exec_status("Cannot DUP empty stack");
             }
             stack[sp] = stack[sp - 1];
             ++sp;
@@ -109,8 +131,7 @@ void VM::exec() const
         {
             if (sp < 2)
             {
-                cerr << "Too few items on stack to ADD\n";
-                return;
+                return VM_exec_status("Too few items on stack to ADD");
             }
 
             stack[sp - 2] = stack[sp - 2] + stack[sp - 1];
@@ -122,60 +143,53 @@ void VM::exec() const
         {
             if (sp < 2)
             {
-                cerr << "Too few items on stack to SUB\n";
-                return;
+                return VM_exec_status("Too few items on stack to SUB");
             }
 
             stack[sp - 2] = stack[sp - 2] - stack[sp - 1];
             --sp;
         }
-            break;
+        break;
 
         case MUL:
         {
             if (sp < 2)
             {
-                cerr << "Too few items on stack to MUL\n";
-                return;
+                return VM_exec_status("Too few items on stack to MUL");
             }
 
             stack[sp - 2] = stack[sp - 2] * stack[sp - 1];
             --sp;
         }
-            break;
+        break;
 
         case DIV:
         {
             if (sp < 2)
             {
-                cerr << "Too few items on stack to DIV\n";
-                return;
+                return VM_exec_status("Too few items on stack to DIV");
             }
-            if (0 == stack[sp-1])
+            if (0 == stack[sp - 1])
             {
-                cerr << "Division by zero not allowed\n";
-                return;
+                return VM_exec_status("Division by zero not allowed");
             }
 
             stack[sp - 2] = stack[sp - 2] / stack[sp - 1];
             --sp;
         }
-            break;
+        break;
 
         default:
-            cerr << "Internal Error: Invalid OPCODE detected";
-            break;
+            return VM_exec_status("Internal Error: Invalid OPCODE detected");
         }
     }
 
     if (0 == sp)
     {
-        cerr << "Error: Program produced no value\n";
+        return VM_exec_status("Program produced no value");
     }
-    else
-    {
-        cout << "Program value is " << stack[sp-1] << "\n";
-    }
+
+    return VM_exec_status(int(stack[sp - 1]));
 }
 
 bool VM::maybe_add_op(OPCODE op)

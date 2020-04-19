@@ -2,23 +2,55 @@
 
 #include "../include/vm.hpp"
 
+using namespace std;
+
 namespace
 {
+void EXPECT_ERROR(VM &vm, const char *msg)
+{
+    VM_exec_status status = vm.exec();
+    if (status.is_status_ok())
+    {
+        cerr << "[FAIL] " << msg << ", expected Error, got" << status.get_program_value() << "\n";
+    }
+    else
+    {
+        cerr << "[PASS] " << msg << "\n";
+    }
+}
+
+void EXPECT_VALUE(VM &vm, const char *msg, int value)
+{
+    VM_exec_status status = vm.exec();
+    if (status.is_status_ok())
+    {
+        int program_value = status.get_program_value();
+        if (value == program_value)
+        {
+            cerr << "[PASS] " << msg << "\n";
+        }
+        else
+        {
+            cerr << "[FAIL] " << msg << ", expected " << value << ", got" << program_value << "\n";
+        }
+    }
+    else
+    {
+        cerr << "[FAIL] " << msg << ", expected value " << value << ", got error" << status.get_message() << "\n";
+    }
+}
+
 void empty_program_test()
 {
-    std::cout << "\n\tWe expect an error message if we execute an empty program.\n";
-
     VM vm;
-    vm.exec();
+    EXPECT_ERROR(vm, "Empty program");
 }
 
 void trivial_program_test()
 {
-    std::cout << "\n\tWe expect to see 1 for an answer if the program is just PUSH 1.\n";
-
     VM vm;
     vm.push(1);
-    vm.exec();
+    EXPECT_VALUE(vm, "Just Push", 1);
 }
 
 } // namespace

@@ -1,6 +1,24 @@
 #if !defined(VM_HPP)
 #define VM_HPP
 
+#include <string>
+
+class VM_exec_status
+{
+public:
+    explicit VM_exec_status(int value);
+    explicit VM_exec_status(const char *msg);
+
+    bool is_status_ok() const;
+    int get_program_value() const;
+    const std::string &get_message() const;
+
+private:
+    const bool is_ok;
+    const int value;
+    const std::string msg;
+};
+
 class VM
 {
 private:
@@ -27,7 +45,7 @@ public:
     void mul();
     void div();
 
-    void exec() const;
+    VM_exec_status exec() const;
 
 private:
     OPCODE program[MAX_PROGRAM_SIZE];
