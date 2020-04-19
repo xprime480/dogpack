@@ -1,5 +1,4 @@
 #include <cstring>
-#include <iostream>
 
 #include "../include/vm.hpp"
 
@@ -212,5 +211,4 @@ bool VM::maybe_add_op(OPCODE op)
 void VM::program_too_big()
 {
     valid_program = false;
-    cerr << "Maximum program size exceeded\n";
 }

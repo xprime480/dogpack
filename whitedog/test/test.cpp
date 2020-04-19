@@ -6,6 +6,34 @@ using namespace std;
 
 namespace
 {
+class Runner
+{
+    public:
+    Runner()
+    : count(0u), passed(0u)
+    {
+    }
+
+    void operator()(bool (*fn)())
+    {
+        ++count;
+        if ( fn() )
+        {
+            ++passed;
+        }
+    }
+
+    int report() const
+    {
+        cout << "\n" << passed << " passed out of " << count << " tests\n";
+        return passed == count ? 0 : 1;
+    }
+
+    private:
+    size_t count;
+    size_t passed;
+};
+
 bool EXPECT_ERROR(VM &vm, const char *msg)
 {
     VM_exec_status status = vm.exec();
@@ -115,33 +143,90 @@ bool add()
     return EXPECT_VALUE(vm, "Add", 34);
 }
 
-class Runner
+bool sub_too_few()
 {
-    public:
-    Runner()
-    : count(0u), passed(0u)
+    VM vm;
+    vm.push(1);
+    vm.sub();
+    return EXPECT_ERROR(vm, "Sub Too Few");
+}
+
+bool sub()
+{
+    VM vm;
+    vm.push(1);
+    vm.push(33);
+    vm.sub();
+    return EXPECT_VALUE(vm, "Sub", -32);
+}
+
+bool mul_too_few()
+{
+    VM vm;
+    vm.push(1);
+    vm.mul();
+    return EXPECT_ERROR(vm, "Mul Too Few");
+}
+
+bool mul()
+{
+    VM vm;
+    vm.push(2);
+    vm.push(3);
+    vm.mul();
+    return EXPECT_VALUE(vm, "Mul", 6);
+}
+
+bool div_too_few()
+{
+    VM vm;
+    vm.push(1);
+    vm.div();
+    return EXPECT_ERROR(vm, "Div Too Few");
+}
+
+bool div_by_zero()
+{
+    VM vm;
+    vm.push(1);
+    vm.push(0);
+    vm.div();
+    return EXPECT_ERROR(vm, "Div by Zero");
+}
+
+bool div()
+{
+    VM vm;
+    vm.push(12);
+    vm.push(3);
+    vm.div();
+    return EXPECT_VALUE(vm, "Div", 4);
+}
+
+bool longer_prog()
+{
+    VM vm;
+    vm.push(2);
+    vm.dup();
+    vm.mul();
+    vm.push(5);
+    vm.push(2);
+    vm.add();
+    vm.sub();
+
+    return EXPECT_VALUE(vm, "Longer Prog", -3);
+}
+
+bool too_long()
+{
+    VM vm;
+    for ( int i = 0 ; i < 1009 ; ++i )
     {
+        vm.push(i);
     }
 
-    void operator()(bool (*fn)())
-    {
-        ++count;
-        if ( fn() )
-        {
-            ++passed;
-        }
-    }
-
-    int report() const
-    {
-        cout << "\n" << passed << " passed out of " << count << " tests\n";
-        return passed == count ? 0 : 1;
-    }
-
-    private:
-    size_t count;
-    size_t passed;
-};
+    return EXPECT_ERROR(vm, "Too Long");
+}
 
 } // namespace
 
@@ -158,6 +243,15 @@ int main(void)
     runner(dup);
     runner(add_too_few);
     runner(add);
+    runner(sub_too_few);
+    runner(sub);
+    runner(mul_too_few);
+    runner(mul);
+    runner(div_too_few);
+    runner(div_by_zero);
+    runner(div);
+    runner(longer_prog);
+    runner(too_long);
 
     return runner.report();
 }
