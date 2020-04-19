@@ -167,6 +167,15 @@ void VM::exec() const
             break;
         }
     }
+
+    if (0 == sp)
+    {
+        cerr << "Error: Program produced no value\n";
+    }
+    else
+    {
+        cout << "Program value is " << stack[sp-1] << "\n";
+    }
 }
 
 bool VM::maybe_add_op(OPCODE op)
