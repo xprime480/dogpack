@@ -1,6 +1,5 @@
-# Red Dog Virtual Machine
+# The Dog Pack Project
 
-This is (or will be) the Red Dog Virtual Machine, optimized for
-continuation-based programming.
+This project is for exploration on topics in implementing virtual
+machines.  No guarantees are made for any of the code contained herein.
 
-We'll see.
