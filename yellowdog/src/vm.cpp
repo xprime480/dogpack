@@ -1,4 +1,5 @@
 #include <cstring>
+#include <iostream>
 
 #include "../include/vm.hpp"
 
@@ -38,15 +39,7 @@ void VM::push(int val)
 {
     if (maybe_add_op(PUSH))
     {
-        if ((program_size + sizeof(int)) <= MAX_PROGRAM_SIZE)
-        {
-            memcpy((void *)&program[program_size], (void *)&val, sizeof(int));
-            program_size += sizeof(int);
-        }
-        else
-        {
-            program_too_big();
-        }
+        maybe_add_arg(val);
     };
 }
 
@@ -80,24 +73,88 @@ void VM::div()
     maybe_add_op(DIV);
 }
 
-VM_exec_status VM::exec() const
+void VM::jmp(const std::string &target)
 {
+    if (maybe_add_op(JMP))
+    {
+        int index = find_label_index(target);
+        if (-1 == index)
+        {
+            index = labels.size();
+            labels.push_back(make_pair(target, index));
+        }
+
+        maybe_add_arg(index);
+    }
+}
+
+void VM::label(const std::string &target)
+{
+    if (!valid_program)
+    {
+        return;
+    }
+
+    int index = find_label_index(target);
+    if (-1 == index)
+    {
+        index = labels.size();
+        labels.push_back(make_pair(target, program_size));
+    }
+    else
+    {
+        pair<string, int> &label = labels[index];
+        if (label.second >= 0)
+        {
+            // duplicate labels not allowed
+            valid_program = false;
+        }
+        else
+        {
+            label.second = program_size;
+        }
+    }
+}
+
+VM_exec_status VM::exec(bool verbose) const
+{
+    cerr << "Starting program execution\n";
+
     if (!valid_program)
     {
         return VM_exec_status("Cannot execute invalid program");
     }
 
-    int stack[1024];
+    static const unsigned int MAX_STACK_SIZE = 1024;
+    static const unsigned int MAX_TICKS = 102400;
+
+    int stack[MAX_STACK_SIZE];
     unsigned int sp = 0;
     unsigned int pc = 0;
+    unsigned ticks = 0;
 
     while (pc < program_size)
     {
+        if ( ++ticks > MAX_TICKS)
+        {
+            return VM_exec_status("Max Runtime Exceeded");
+        }
+
+        if (verbose)
+        {
+            trace(pc, stack, sp);
+        }
+
         OPCODE op = program[pc++];
         switch (op)
         {
         case PUSH:
         {
+            if (MAX_STACK_SIZE == sp)
+            {
+                return VM_exec_status("Stack overflow on PUSH");
+            }
+
             int val;
             memcpy((void *)&val, (void *)&program[pc], sizeof(int));
             pc += sizeof(int);
@@ -117,6 +174,10 @@ VM_exec_status VM::exec() const
 
         case DUP:
         {
+            if (MAX_STACK_SIZE == sp)
+            {
+                return VM_exec_status("Stack overflow on DUP");
+            }
             if (0 == sp)
             {
                 return VM_exec_status("Cannot DUP empty stack");
@@ -178,6 +239,24 @@ VM_exec_status VM::exec() const
         }
         break;
 
+        case JMP:
+        {
+            int index;
+            memcpy((void *)&index, (void *)&program[pc], sizeof(int));
+            if (index < 0 || index >= labels.size())
+            {
+                return VM_exec_status("Internal Error: Invalid LABEL INDEX detected");
+            }
+            const pair<string, int> &label = labels[index];
+            if (label.second < 0)
+            {
+                return VM_exec_status("Label was never defined");
+            }
+
+            pc = label.second;
+        }
+        break;
+
         default:
             return VM_exec_status("Internal Error: Invalid OPCODE detected");
         }
@@ -208,7 +287,106 @@ bool VM::maybe_add_op(OPCODE op)
     return valid_program;
 }
 
+bool VM::maybe_add_arg(int arg)
+{
+    if ((program_size + sizeof(int)) <= MAX_PROGRAM_SIZE)
+    {
+        memcpy((void *)&program[program_size], (void *)&arg, sizeof(int));
+        program_size += sizeof(int);
+    }
+    else
+    {
+        program_too_big();
+    }
+
+    return valid_program;
+}
+
+int VM::find_label_index(string const &target)
+{
+    int index = -1;
+    for (int i = 0; i < labels.size(); ++i)
+    {
+        if (target == labels[i].first)
+        {
+            index = i;
+            break;
+        }
+    }
+
+    return index;
+}
+
 void VM::program_too_big()
 {
     valid_program = false;
+}
+
+void VM::trace(unsigned int pc, int *stack, unsigned int sp) const
+{
+    cerr << "STACK[" << sp << "]: ";
+    for (unsigned int i = 3; i > 0 && sp > 0; --i)
+    {
+        cerr << stack[--sp] << " ";
+    }
+    cerr << "\n";
+
+    cerr << "PC: " << pc << "\n";
+
+    OPCODE op = program[pc++];
+    switch (op)
+    {
+    case PUSH:
+    {
+        int val;
+        memcpy((void *)&val, (void *)&program[pc], sizeof(int));
+        cerr << "PUSH " << val << "\n";
+    }
+    break;
+
+    case POP:
+        cerr << "POP\n";
+        break;
+
+    case DUP:
+        cerr << "DUP\n";
+        break;
+ 
+    case ADD:
+        cerr << "ADD\n";
+        break;
+
+    case SUB:
+        cerr << "SUB\n";
+        break;
+
+    case MUL:
+        cerr << "MUL\n";
+        break;
+
+    case DIV:
+        cerr << "DIV\n";
+        break;
+
+    case JMP:
+    {
+        int index;
+        memcpy((void *)&index, (void *)&program[pc], sizeof(int));
+        if (index < 0 || index >= labels.size())
+        {
+            cerr << "JMP ???";
+        }
+        const pair<string, int> &label = labels[index];
+            cerr << "JMP " << label.first;
+        if (label.second < 0)
+        {
+            cerr << " (never defined)";
+        }
+        cerr << "\n";
+    }
+    break;
+
+    default:
+        cerr << "unknown op code: " << op << "\n";
+    }
 }

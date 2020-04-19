@@ -2,6 +2,7 @@
 #define VM_HPP
 
 #include <string>
+#include <vector>
 
 class VM_exec_status
 {
@@ -34,6 +35,8 @@ private:
     static const OPCODE MUL = 6;
     static const OPCODE DIV = 7;
 
+    static const OPCODE JMP = 9;
+
 public:
     VM();
 
@@ -45,15 +48,24 @@ public:
     void mul();
     void div();
 
-    VM_exec_status exec() const;
+    void jmp(const std::string & target);
+    void label(const std::string & target);
+
+    VM_exec_status exec(bool verbose = false) const;
 
 private:
     OPCODE program[MAX_PROGRAM_SIZE];
     unsigned int program_size;
     bool valid_program;
 
+    std::vector<std::pair<std::string, int>> labels;
+
     bool maybe_add_op(OPCODE op);
+    bool maybe_add_arg(int arg);
+    int find_label_index(std::string const & target);
     void program_too_big();
+
+    void trace(unsigned int pc, int * stack, unsigned int sp) const;
 };
 
 #endif

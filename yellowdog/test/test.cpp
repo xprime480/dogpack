@@ -34,9 +34,9 @@ class Runner
     size_t passed;
 };
 
-bool EXPECT_ERROR(VM &vm, const char *msg)
+bool EXPECT_ERROR(VM &vm, const char *msg, bool verbose=false)
 {
-    VM_exec_status status = vm.exec();
+    VM_exec_status status = vm.exec(verbose);
     if (status.is_status_ok())
     {
         cerr << "[FAIL] " << msg << ", expected Error, got" << status.get_program_value() << "\n";
@@ -45,6 +45,10 @@ bool EXPECT_ERROR(VM &vm, const char *msg)
     else
     {
         cerr << "[PASS] " << msg << "\n";
+        if (verbose)
+        {
+            cerr << "\tactual error message: " << status.get_message() << "\n";
+        }
         return true;
     }
 }
@@ -217,7 +221,7 @@ bool longer_prog()
     return EXPECT_VALUE(vm, "Longer Prog", -3);
 }
 
-bool too_long()
+bool program_too_long()
 {
     VM vm;
     for ( int i = 0 ; i < 1009 ; ++i )
@@ -225,13 +229,59 @@ bool too_long()
         vm.push(i);
     }
 
-    return EXPECT_ERROR(vm, "Too Long");
+    return EXPECT_ERROR(vm, "Program Too Long");
+}
+
+bool overflow_push()
+{
+    VM vm;
+    vm.label("Start");
+    vm.push(1);
+    vm.jmp("Start");
+
+    return EXPECT_ERROR(vm, "Overflow Push");
+}
+
+bool overflow_dup()
+{
+    VM vm;
+    vm.push(1);
+    vm.label("Start");
+    vm.dup();
+    vm.jmp("Start");
+
+    return EXPECT_ERROR(vm, "Overflow Dup");
+}
+
+bool duplicate_label()
+{
+    VM vm;
+    vm.push(1);
+    vm.label("X");
+    vm.push(2);
+    vm.label("X");
+    vm.push(2);
+    
+    return EXPECT_ERROR(vm, "Duplicate Label");
+}
+
+bool run_too_long()
+{
+    VM vm;
+    vm.push(0);
+    vm.label("X");
+    vm.push(1);
+    vm.add();
+    vm.jmp("X");
+
+    return EXPECT_ERROR(vm, "Run Too Long");
 }
 
 } // namespace
 
 int main(void)
 {
+
     Runner runner;
 
     runner(empty_program);
@@ -251,7 +301,13 @@ int main(void)
     runner(div_by_zero);
     runner(div);
     runner(longer_prog);
-    runner(too_long);
+    runner(program_too_long);
+
+    runner(overflow_push);
+    runner(overflow_dup);
+
+    runner(duplicate_label);
+    runner(run_too_long);
 
     return runner.report();
 }

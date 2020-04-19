@@ -50,6 +50,7 @@ of the stack is printed.  It is an error if there is no value on the stack at th
 The following conditions are reported errors:
 
 - `POP`, `DUP`, conditional `Jxx` instruction while stack is empty
+- `PUSH` or `DUP` when stack is full
 - `ADD`, `SUB`, `MUL`, `DIV`, `SWAP`, `CMP` instruction with fewer than two values on the stack.
 - `DIV` with `x` equal to 0
 - `Jxx` instruction where `label` has not been defined.
