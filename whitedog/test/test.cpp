@@ -11,9 +11,20 @@ void empty_program_test()
     VM vm;
     vm.exec();
 }
+
+void trivial_program_test()
+{
+    std::cout << "\n\tWe expect to see 1 for an answer if the program is just PUSH 1.\n";
+
+    VM vm;
+    vm.push(1);
+    vm.exec();
+}
+
 } // namespace
 
 int main(void)
 {
     empty_program_test();
+    trivial_program_test();
 }
