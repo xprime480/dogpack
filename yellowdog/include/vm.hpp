@@ -48,12 +48,13 @@ private:
     static const OPCODE PUSH = 1;
     static const OPCODE POP = 2;
     static const OPCODE DUP = 3;
-    static const OPCODE ADD = 4;
-    static const OPCODE SUB = 5;
-    static const OPCODE MUL = 6;
-    static const OPCODE DIV = 7;
-    static const OPCODE CMP = 8;
-    static const OPCODE JMP = 9;
+    static const OPCODE SWAP = 4;
+    static const OPCODE ADD = 5;
+    static const OPCODE SUB = 6;
+    static const OPCODE MUL = 7;
+    static const OPCODE DIV = 8;
+    static const OPCODE CMP = 9;
+    static const OPCODE JMP = 10;
 
 public:
     VM();
@@ -61,6 +62,7 @@ public:
     void push(int val);
     void pop();
     void dup();
+    void swap();
     void add();
     void sub();
     void mul();

@@ -138,6 +138,11 @@ void VM::dup()
     maybe_add_op(DUP);
 }
 
+void VM::swap()
+{
+    maybe_add_op(SWAP);
+}
+
 void VM::add()
 {
     maybe_add_op(ADD);
@@ -259,6 +264,18 @@ VM_exec_status VM::exec(bool verbose) const
             ++sp;
         }
         break;
+
+        case SWAP:
+        {
+            if (sp < 2)
+            {
+                return VM_exec_status("Too few items on stack to SWAP");
+            }
+
+            std::swap(stack[sp - 2], stack[sp - 1]);
+        }
+        break;
+
 
         case ADD:
         {

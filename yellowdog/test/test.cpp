@@ -322,6 +322,23 @@ bool cmp_gt()
     return EXPECT_VALUE(vm, "Cmp GT", 1);
 }
 
+bool swap_too_few()
+{
+    VM vm;
+    vm.push(1);
+    vm.swap();
+    return EXPECT_ERROR(vm, "Swap Too Few");
+}
+
+bool swap()
+{
+    VM vm;
+    vm.push(1);
+    vm.push(2);
+    vm.swap();
+    return EXPECT_VALUE(vm, "Swap", 1);
+}
+
 
 } // namespace
 
@@ -360,6 +377,9 @@ int main(void)
     runner(cmp_lt);
     runner(cmp_eq);
     runner(cmp_gt);
+
+    runner(swap_too_few);
+    runner(swap);
 
     return runner.report();
 }
