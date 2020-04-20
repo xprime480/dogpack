@@ -53,9 +53,9 @@ bool EXPECT_ERROR(VM &vm, const char *msg, bool verbose=false)
     }
 }
 
-bool EXPECT_VALUE(VM &vm, const char *msg, int value)
+bool EXPECT_VALUE(VM &vm, const char *msg, int value, bool verbose = false)
 {
-    VM_exec_status status = vm.exec();
+    VM_exec_status status = vm.exec(verbose);
     if (status.is_status_ok())
     {
         int program_value = status.get_program_value();
@@ -339,12 +339,53 @@ bool swap()
     return EXPECT_VALUE(vm, "Swap", 1);
 }
 
+bool jeq_too_few()
+{
+    VM vm;
+    vm.jeq("L00");
+    vm.label("L00");
+    vm.push(0);
+    return EXPECT_ERROR(vm, "JEQ Too Few");
+}
+
+bool jeq_unknown_label()
+{
+    VM vm;
+    vm.push(0);
+    vm.jeq("L00");
+    return EXPECT_ERROR(vm, "JEQ Too Few");
+}
+
+bool jeq_eq()
+{
+    VM vm;
+    vm.push(0);
+    vm.jeq("L00");
+    vm.push(1);
+    vm.jmp("L02");
+    vm.label("L00");
+    vm.push(2);
+    vm.label("L02");
+    return EXPECT_VALUE(vm, "JEQ EQ", 2);
+}
+
+bool jeq_ne()
+{
+    VM vm;
+    vm.push(1);
+    vm.jeq("L00");
+    vm.push(1);
+    vm.jmp("L02");
+    vm.label("L00");
+    vm.push(2);
+    vm.label("L02");
+   return EXPECT_VALUE(vm, "JEQ NE", 1);
+}
 
 } // namespace
 
 int main(void)
 {
-
     Runner runner;
 
     runner(empty_program);
@@ -380,6 +421,11 @@ int main(void)
 
     runner(swap_too_few);
     runner(swap);
+
+    runner(jeq_too_few);
+    runner(jeq_unknown_label);
+    runner(jeq_eq);
+    runner(jeq_ne);
 
     return runner.report();
 }

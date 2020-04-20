@@ -66,7 +66,7 @@ int VM_labels::new_label(std::string const &name, int location)
 
 int VM_labels::add_or_update(std::string const &name, int location)
 {
-    //cerr << "add_or_update: " << name << " " << location << "\n";
+    // cerr << "add_or_update: " << name << " " << location << "\n";
     int index = find(name);
     if (index < 0)
     {
@@ -78,11 +78,11 @@ int VM_labels::add_or_update(std::string const &name, int location)
 
     if (labels[index].second >= 0)
     {
-        //cerr << "\tduplicate\n";
+        //cerr << "\tduplicate returning index -1\n";
         return -1;
     }
 
-    //cerr << "updated\n";
+    //cerr << "\tupdated\n";
     labels[index].second = location;
     return index;
 }
@@ -170,22 +170,25 @@ void VM::cmp()
 
 void VM::jmp(const std::string &target)
 {
-    if (maybe_add_op(JMP))
-    {
-        int index = labels.add_or_update(target, -1);
-        maybe_add_arg(index);
-    }
+    maybe_add_jmp(JMP, target);
+}
+
+void VM::jeq(const std::string &target)
+{
+    maybe_add_jmp(JEQ, target);
 }
 
 void VM::label(const std::string &target)
 {
     if (!valid_program)
     {
+        // cerr << "Program already invalid\n";
         return;
     }
 
-    if (!labels.add_or_update(target, program_size))
+    if (labels.add_or_update(target, program_size) < 0)
     {
+        // cerr << "becoming invalid because of bad return code from labels.add_or_update\n";
         valid_program = false;
     }
 }
@@ -276,7 +279,6 @@ VM_exec_status VM::exec(bool verbose) const
         }
         break;
 
-
         case ADD:
         {
             if (sp < 2)
@@ -358,6 +360,33 @@ VM_exec_status VM::exec(bool verbose) const
         }
         break;
 
+        case JEQ:
+        {
+            if (sp < 1)
+            {
+                return VM_exec_status("Too few items on stack to JEQ");
+            }
+            int test = stack[--sp];
+
+            int index;
+            memcpy((void *)&index, (void *)&program[pc], sizeof(int));
+            int next_pc = labels.pc_at(index);
+            if (next_pc < 0)
+            {
+                return VM_exec_status("Label was never defined");
+            }
+
+            if (test == 0)
+            {
+                pc = (unsigned int)next_pc;
+            }
+            else
+            {
+                pc += sizeof(int);
+            }
+        }
+        break;
+
         default:
             return VM_exec_status("Internal Error: Invalid OPCODE detected");
         }
@@ -369,6 +398,15 @@ VM_exec_status VM::exec(bool verbose) const
     }
 
     return VM_exec_status(int(stack[sp - 1]));
+}
+
+void VM::maybe_add_jmp(OPCODE op, string const &target)
+{
+    if (maybe_add_op(op))
+    {
+        int index = labels.add_or_update(target, -1);
+        maybe_add_arg(index);
+    }
 }
 
 bool VM::maybe_add_op(OPCODE op)
@@ -459,29 +497,36 @@ void VM::trace(unsigned int pc, int *stack, unsigned int sp) const
         break;
 
     case JMP:
-    {
-        int index;
-        memcpy((void *)&index, (void *)&program[pc], sizeof(int));
+        trace_jmp("JMP", pc);
+        break;
 
-        string const &name = labels.name_at(index);
-        if (name.empty())
-        {
-            cerr << "JMP ???";
-        }
-        else
-        {
-            cerr << "JMP " << name;
-            int next_pc = labels.pc_at(index);
-            if (next_pc < 0)
-            {
-                cerr << " (never defined)";
-                cerr << "\n";
-            }
-        }
-    }
-    break;
+    case JEQ:
+        trace_jmp("JEQ", pc);
+        break;
 
     default:
         cerr << "unknown op code: " << op << "\n";
+    }
+}
+
+void VM::trace_jmp(string const &op, unsigned int pc) const
+{
+    int index;
+    memcpy((void *)&index, (void *)&program[pc], sizeof(int));
+
+    string const &name = labels.name_at(index);
+    if (name.empty())
+    {
+        cerr << op << " ???";
+    }
+    else
+    {
+        cerr << op << " " << name;
+        int next_pc = labels.pc_at(index);
+        if (next_pc < 0)
+        {
+            cerr << " (never defined)";
+            cerr << "\n";
+        }
     }
 }

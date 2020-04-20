@@ -55,6 +55,7 @@ private:
     static const OPCODE DIV = 8;
     static const OPCODE CMP = 9;
     static const OPCODE JMP = 10;
+    static const OPCODE JEQ = 11;
 
 public:
     VM();
@@ -69,6 +70,7 @@ public:
     void div();
     void cmp();
     void jmp(const std::string &target);
+    void jeq(const std::string &target);
     void label(const std::string &target);
 
     VM_exec_status exec(bool verbose = false) const;
@@ -80,12 +82,13 @@ private:
 
     VM_labels labels;
 
+    void maybe_add_jmp(OPCODE op, std::string const & target);
     bool maybe_add_op(OPCODE op);
     bool maybe_add_arg(int arg);
-    int find_label_index(std::string const &target);
     void program_too_big();
 
     void trace(unsigned int pc, int *stack, unsigned int sp) const;
+    void trace_jmp(std::string const & op, unsigned int pc) const;
 };
 
 #endif
