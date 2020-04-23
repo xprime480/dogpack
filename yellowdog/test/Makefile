@@ -1,6 +1,5 @@
 PROGS = test
-OBJ = ../bin/vm.o
+LIB = ../bin/libvm.a
 
-$(PROGS) : % : %.cpp $(OBJ)
-	make -C ../src
-	g++ -o $@ $< $(OBJ)
+$(PROGS) : % : %.cpp $(LIB)
+	g++ -o $@ $< -L ../bin -lvm

@@ -5,31 +5,6 @@
 
 using namespace std;
 
-VM_exec_status::VM_exec_status(int value)
-    : is_ok(true), value(value), msg("Execution OK")
-{
-}
-
-VM_exec_status::VM_exec_status(const char *msg)
-    : is_ok(false), value(-1), msg(msg)
-{
-}
-
-bool VM_exec_status::is_status_ok() const
-{
-    return is_ok;
-}
-
-int VM_exec_status::get_program_value() const
-{
-    return value;
-}
-
-const std::string &VM_exec_status::get_message() const
-{
-    return msg;
-}
-
 VM_labels::VM_labels()
 {
     labels.reserve(20);
@@ -42,7 +17,8 @@ size_t VM_labels::size() const
 
 int VM_labels::find(std::string const &name) const
 {
-    for (int i = 0; i < size(); ++i)
+    int sz = (int)size();
+    for (int i = 0; i < sz; ++i)
     {
         if (name == labels[i].first)
         {
@@ -72,24 +48,28 @@ int VM_labels::add_or_update(std::string const &name, int location)
     {
         index = size();
         labels.push_back(pair<string, int>(name, location));
-        //cerr << "\tbrand new at index " << index << "\n";
+        // cerr << "\tbrand new at index " << index << "\n";
         return index;
     }
 
-    if (labels[index].second >= 0)
+    if (labels[index].second < 0 && location >= 0)
     {
-        //cerr << "\tduplicate returning index -1\n";
+        // cerr << "\tupdated\n";
+        labels[index].second = location;
+        return index;
+    }
+    else if (labels[index].second >= 0 && location >= 0)
+    {
+        // cerr << "\tduplicate entry; returning index -1\n";
         return -1;
     }
 
-    //cerr << "\tupdated\n";
-    labels[index].second = location;
     return index;
 }
 
 int VM_labels::pc_at(int index) const
 {
-    if (index < size())
+    if (index < (int)size())
     {
         return labels[index].second;
     }
@@ -98,7 +78,8 @@ int VM_labels::pc_at(int index) const
 
 std::string const &VM_labels::name_at(int index) const
 {
-    if (index < size())
+
+    if (index >= 0 && index < (int)size())
     {
         return labels[index].first;
     }
@@ -199,6 +180,7 @@ VM_exec_status VM::exec(bool verbose) const
     {
         cerr << "Starting program execution\n";
         labels.dump();
+        cerr << "program_size = " << program_size << "\n";
     }
 
     if (!valid_program)
@@ -216,6 +198,10 @@ VM_exec_status VM::exec(bool verbose) const
 
     while (pc < program_size)
     {
+        if (verbose && (ticks % 1000) == 0)
+        {
+            cerr << ticks << " ticks\n";
+        }
         if (++ticks > MAX_TICKS)
         {
             return VM_exec_status("Max Runtime Exceeded");
@@ -448,6 +434,8 @@ void VM::program_too_big()
 
 void VM::trace(unsigned int pc, int *stack, unsigned int sp) const
 {
+    cerr << "---------------------\n";
+
     cerr << "STACK[" << sp << "]: ";
     for (unsigned int i = 3; i > 0 && sp > 0; --i)
     {
@@ -458,6 +446,7 @@ void VM::trace(unsigned int pc, int *stack, unsigned int sp) const
     cerr << "PC: " << pc << "\n";
 
     OPCODE op = program[pc++];
+    cerr << "op: " << (unsigned int)op << "\n";
     switch (op)
     {
     case PUSH:
@@ -497,6 +486,7 @@ void VM::trace(unsigned int pc, int *stack, unsigned int sp) const
         break;
 
     case JMP:
+        cerr << "trace jmp\n";
         trace_jmp("JMP", pc);
         break;
 
@@ -513,6 +503,7 @@ void VM::trace_jmp(string const &op, unsigned int pc) const
 {
     int index;
     memcpy((void *)&index, (void *)&program[pc], sizeof(int));
+    cerr << "Jump Index = " << index << "\n";
 
     string const &name = labels.name_at(index);
     if (name.empty())
@@ -526,7 +517,8 @@ void VM::trace_jmp(string const &op, unsigned int pc) const
         if (next_pc < 0)
         {
             cerr << " (never defined)";
-            cerr << "\n";
         }
     }
+
+    cerr << "\n";
 }
