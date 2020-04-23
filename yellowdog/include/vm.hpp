@@ -25,6 +25,11 @@ private:
     static const OPCODE CMP = 9;
     static const OPCODE JMP = 10;
     static const OPCODE JEQ = 11;
+    static const OPCODE JNE = 12;
+    static const OPCODE JLT = 13;
+    static const OPCODE JLE = 14;
+    static const OPCODE JGT = 15;
+    static const OPCODE JGE = 16;
 
 public:
     VM();
@@ -40,6 +45,11 @@ public:
     void cmp();
     void jmp(const std::string &target);
     void jeq(const std::string &target);
+    void jne(const std::string &target);
+    void jlt(const std::string &target);
+    void jle(const std::string &target);
+    void jgt(const std::string &target);
+    void jge(const std::string &target);
     void label(const std::string &target);
 
     VM_exec_status exec(bool verbose = false) const;

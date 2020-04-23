@@ -68,6 +68,31 @@ void VM::jeq(const std::string &target)
     maybe_add_jmp(JEQ, target);
 }
 
+void VM::jne(const std::string &target)
+{
+    maybe_add_jmp(JNE, target);
+}
+
+void VM::jlt(const std::string &target)
+{
+    maybe_add_jmp(JLT, target);
+}
+
+void VM::jle(const std::string &target)
+{
+    maybe_add_jmp(JLE, target);
+}
+
+void VM::jgt(const std::string &target)
+{
+    maybe_add_jmp(JGT, target);
+}
+
+void VM::jge(const std::string &target)
+{
+    maybe_add_jmp(JGE, target);
+}
+
 void VM::label(const std::string &target)
 {
     if (!valid_program)
@@ -401,6 +426,26 @@ void VM::trace(unsigned int pc, int *stack, unsigned int sp) const
 
     case JEQ:
         trace_jmp("JEQ", pc);
+        break;
+
+    case JNE:
+        trace_jmp("JNE", pc);
+        break;
+
+    case JLT:
+        trace_jmp("JLT", pc);
+        break;
+
+    case JLE:
+        trace_jmp("JLE", pc);
+        break;
+
+    case JGT:
+        trace_jmp("JGT", pc);
+        break;
+
+    case JGE:
+        trace_jmp("JGE", pc);
         break;
 
     default:
