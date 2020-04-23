@@ -7,7 +7,7 @@ VM_exec_status::VM_exec_status(int value)
 {
 }
 
-VM_exec_status::VM_exec_status(const char *msg)
+VM_exec_status::VM_exec_status(const string & msg)
     : is_ok(false), value(-1), msg(msg)
 {
 }

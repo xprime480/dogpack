@@ -7,7 +7,7 @@ class VM_exec_status
 {
 public:
     explicit VM_exec_status(int value);
-    explicit VM_exec_status(const char *msg);
+    explicit VM_exec_status(std::string const & msg);
 
     bool is_status_ok() const;
     int get_program_value() const;

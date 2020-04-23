@@ -16,7 +16,7 @@ VM_exec_status VM_executor::exec(bool verbose)
 {
     reset();
 
-    while (pc < program_size)
+    while (status.empty() && pc < program_size)
     {
         if (verbose && (ticks % 1000) == 0)
         {
@@ -24,7 +24,8 @@ VM_exec_status VM_executor::exec(bool verbose)
         }
         if (++ticks > MAX_TICKS)
         {
-            return VM_exec_status("Max Runtime Exceeded");
+            status = "Max Runtime Exceeded";
+            break;
         }
 
         if (verbose)
@@ -36,121 +37,95 @@ VM_exec_status VM_executor::exec(bool verbose)
         switch (op)
         {
         case PUSH:
-        {
-            if (MAX_STACK_SIZE == sp)
-            {
-                return VM_exec_status("Stack overflow on PUSH");
-            }
-
-            int val;
-            memcpy((void *)&val, (void *)&program[pc], sizeof(int));
-            pc += sizeof(int);
-            stack[sp++] = val;
-        }
-        break;
+            do_instructions(
+                [this]() {
+                    int val;
+                    memcpy((void *)&val, (void *)&program[pc], sizeof(int));
+                    pc += sizeof(int);
+                    stack[sp++] = val;
+                },
+                0, 1, "PUSH");
+            break;
 
         case POP:
-        {
-            if (0 == sp)
-            {
-                return VM_exec_status("Cannot POP empty stack");
-            }
-            --sp;
-        }
-        break;
+            do_instructions(
+                [this]() {
+                    --sp;
+                },
+                1, 0, "POP");
+            break;
 
         case DUP:
-        {
-            if (MAX_STACK_SIZE == sp)
-            {
-                return VM_exec_status("Stack overflow on DUP");
-            }
-            if (0 == sp)
-            {
-                return VM_exec_status("Cannot DUP empty stack");
-            }
-            stack[sp] = stack[sp - 1];
-            ++sp;
-        }
-        break;
+            do_instructions(
+                [this]() {
+                    stack[sp] = stack[sp - 1];
+                    ++sp;
+                },
+                1, 1, "DUP");
+            is_stack_available("DUP");
+            break;
 
         case SWAP:
-        {
-            if (sp < 2)
-            {
-                return VM_exec_status("Too few items on stack to SWAP");
-            }
-
-            std::swap(stack[sp - 2], stack[sp - 1]);
-        }
-        break;
+            do_instructions(
+                [this]() {
+                    std::swap(stack[sp - 2], stack[sp - 1]);
+                },
+                2, 0, "SWAP");
+            break;
 
         case ADD:
-        {
-            if (sp < 2)
-            {
-                return VM_exec_status("Too few items on stack to ADD");
-            }
-
-            stack[sp - 2] = stack[sp - 2] + stack[sp - 1];
-            --sp;
-        }
-        break;
+            do_instructions(
+                [this]() {
+                    stack[sp - 2] = stack[sp - 2] + stack[sp - 1];
+                    --sp;
+                },
+                2, 0, "ADD");
+            break;
 
         case SUB:
-        {
-            if (sp < 2)
-            {
-                return VM_exec_status("Too few items on stack to SUB");
-            }
-
-            stack[sp - 2] = stack[sp - 2] - stack[sp - 1];
-            --sp;
-        }
-        break;
+            do_instructions(
+                [this]() {
+                    stack[sp - 2] = stack[sp - 2] - stack[sp - 1];
+                    --sp;
+                },
+                2, 0, "SUB");
+            break;
 
         case MUL:
-        {
-            if (sp < 2)
-            {
-                return VM_exec_status("Too few items on stack to MUL");
-            }
-
-            stack[sp - 2] = stack[sp - 2] * stack[sp - 1];
-            --sp;
-        }
-        break;
+            do_instructions(
+                [this]() {
+                    stack[sp - 2] = stack[sp - 2] * stack[sp - 1];
+                    --sp;
+                },
+                2, 0, "MUL");
+            break;
 
         case DIV:
-        {
-            if (sp < 2)
-            {
-                return VM_exec_status("Too few items on stack to DIV");
-            }
-            if (0 == stack[sp - 1])
-            {
-                return VM_exec_status("Division by zero not allowed");
-            }
+            do_instructions(
+                [this]() {
+                    if (0 == stack[sp - 1])
+                    {
+                        status = "Division by zero not allowed";
+                        return;
+                    }
 
-            stack[sp - 2] = stack[sp - 2] / stack[sp - 1];
-            --sp;
-        }
-        break;
+                    stack[sp - 2] = stack[sp - 2] / stack[sp - 1];
+                    --sp;
+                },
+                2, 0, "DIV");
+            break;
 
         case CMP:
-        {
-            if (sp < 2)
-            {
-                return VM_exec_status("Too few items on stack to CMP");
-            }
+            do_instructions(
+                [this]() {
+                    int lhs = stack[sp - 2];
+                    int rhs = stack[sp - 1];
 
-            int lhs = stack[sp - 2];
-            int rhs = stack[sp - 1];
-
-            stack[sp - 2] = (lhs < rhs) ? -1 : ((lhs > rhs) ? +1 : 0);
-            --sp;
-        }
-        break;
+                    stack[sp - 2] = (lhs < rhs) ? -1 : ((lhs > rhs) ? +1 : 0);
+                    --sp;
+                },
+                2, 0, "CMP");
+            break;
 
         case JMP:
         {
@@ -159,7 +134,8 @@ VM_exec_status VM_executor::exec(bool verbose)
             int next_pc = labels.pc_at(index);
             if (next_pc < 0)
             {
-                return VM_exec_status("Label was never defined");
+                status = "Label was never defined";
+                break;
             }
 
             pc = (unsigned int)next_pc;
@@ -170,7 +146,8 @@ VM_exec_status VM_executor::exec(bool verbose)
         {
             if (sp < 1)
             {
-                return VM_exec_status("Too few items on stack to JEQ");
+                status = "Too few items on stack to JEQ";
+                break;
             }
             int test = stack[--sp];
 
@@ -179,7 +156,9 @@ VM_exec_status VM_executor::exec(bool verbose)
             int next_pc = labels.pc_at(index);
             if (next_pc < 0)
             {
-                return VM_exec_status("Label was never defined");
+                status = "Label was never defined";
+                ;
+                break;
             }
 
             if (test == 0)
@@ -194,13 +173,18 @@ VM_exec_status VM_executor::exec(bool verbose)
         break;
 
         default:
-            return VM_exec_status("Internal Error: Invalid OPCODE detected");
+            status = "Internal Error: Invalid OPCODE detected";
+            break;
         }
     }
 
-    if (0 == sp)
+    if (status.empty() && 0 == sp)
     {
-        return VM_exec_status("Program produced no value");
+        status = "Program produced no value";
+    }
+    if (!status.empty())
+    {
+        return VM_exec_status(status);
     }
 
     return VM_exec_status(int(stack[sp - 1]));
@@ -209,6 +193,41 @@ VM_exec_status VM_executor::exec(bool verbose)
 void VM_executor::reset()
 {
     pc = sp = ticks = 0;
+    status = "";
+}
+
+void VM_executor::is_stack_available(const char *name)
+{
+    if (MAX_STACK_SIZE == sp)
+    {
+        status = "Stack overflow on ";
+        status += name;
+    }
+}
+
+void VM_executor::is_arg_available(size_t count, const char *name)
+{
+    if (sp < count)
+    {
+        status = "Not enough arguments on stack for ";
+        status += name;
+    }
+}
+
+void VM_executor::do_instructions(std::function<void(void)> instr, size_t argcount, size_t stackneeded, const char *name)
+{
+    if (argcount > 0 && status.empty())
+    {
+        is_arg_available(argcount, name);
+    }
+    if (stackneeded > 0 && status.empty())
+    {
+        is_stack_available(name);
+    }
+    if (status.empty())
+    {
+        instr();
+    }
 }
 
 void VM_executor::trace(unsigned int pc, int *stack, unsigned int sp) const
