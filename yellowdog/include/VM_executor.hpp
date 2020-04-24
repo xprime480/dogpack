@@ -34,8 +34,10 @@ private:
 
     void is_stack_available(const char *name);
     void is_arg_available(size_t count, const char *name);
+    int get_jump_target();
 
     void do_instructions(std::function<void(void)> instr, size_t argcount, size_t stackneeded, const char * name);
+    void do_jump(std::function<void(int)> jump, size_t argcount, const char * name);
 
     void trace(unsigned int pc, int *stack, unsigned int sp) const;
     void trace_jmp(std::string const &op, unsigned int pc) const;

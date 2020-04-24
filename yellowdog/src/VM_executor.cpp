@@ -128,49 +128,28 @@ VM_exec_status VM_executor::exec(bool verbose)
             break;
 
         case JMP:
-        {
-            int index;
-            memcpy((void *)&index, (void *)&program[pc], sizeof(int));
-            int next_pc = labels.pc_at(index);
-            if (next_pc < 0)
-            {
-                status = "Label was never defined";
-                break;
-            }
-
-            pc = (unsigned int)next_pc;
-        }
-        break;
+            do_jump(
+                [this](int target) {
+                    pc = (unsigned int)target;
+                },
+                0, "JMP");
+            break;
 
         case JEQ:
-        {
-            if (sp < 1)
-            {
-                status = "Too few items on stack to JEQ";
-                break;
-            }
-            int test = stack[--sp];
-
-            int index;
-            memcpy((void *)&index, (void *)&program[pc], sizeof(int));
-            int next_pc = labels.pc_at(index);
-            if (next_pc < 0)
-            {
-                status = "Label was never defined";
-                ;
-                break;
-            }
-
-            if (test == 0)
-            {
-                pc = (unsigned int)next_pc;
-            }
-            else
-            {
-                pc += sizeof(int);
-            }
-        }
-        break;
+            do_jump(
+                [this](int target) {
+                    int test = stack[--sp];
+                    if (test == 0)
+                    {
+                        pc = (unsigned int)target;
+                    }
+                    else
+                    {
+                        pc += sizeof(int);
+                    }
+                },
+                1, "JEQ");
+            break;
 
         default:
             status = "Internal Error: Invalid OPCODE detected";
@@ -214,6 +193,18 @@ void VM_executor::is_arg_available(size_t count, const char *name)
     }
 }
 
+int VM_executor::get_jump_target()
+{
+    int index;
+    memcpy((void *)&index, (void *)&program[pc], sizeof(int));
+    int target = labels.pc_at(index);
+    if (target < 0)
+    {
+        status = "Label was never defined";
+    }
+    return target;
+}
+
 void VM_executor::do_instructions(std::function<void(void)> instr, size_t argcount, size_t stackneeded, const char *name)
 {
     if (argcount > 0 && status.empty())
@@ -228,6 +219,21 @@ void VM_executor::do_instructions(std::function<void(void)> instr, size_t argcou
     {
         instr();
     }
+}
+
+void VM_executor::do_jump(std::function<void(int)> jump, size_t argcount, const char *name)
+{
+            do_instructions(
+                [this, jump]() {
+                    int target = get_jump_target();
+                    if (target < 0)
+                    {
+                        return;
+                    }
+
+                    jump(target);
+                },
+                argcount, 0, name);
 }
 
 void VM_executor::trace(unsigned int pc, int *stack, unsigned int sp) const
@@ -331,8 +337,8 @@ void VM_executor::trace_jmp(string const &op, unsigned int pc) const
     else
     {
         cerr << op << " " << name;
-        int next_pc = labels.pc_at(index);
-        if (next_pc < 0)
+        int target = labels.pc_at(index);
+        if (target < 0)
         {
             cerr << " (never defined)";
         }
