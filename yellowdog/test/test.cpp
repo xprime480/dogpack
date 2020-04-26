@@ -75,7 +75,7 @@ bool EXPECT_VALUE(VM &vm, string const &label, int value, bool verbose = false)
     }
     else
     {
-        cerr << "[FAIL] " << label << ", expected value " << value << ", got error" << status.get_message() << "\n";
+        cerr << "[FAIL] " << label << ", expected value " << value << ", got error: " << status.get_message() << "\n";
         return false;
     }
 }
@@ -139,6 +139,83 @@ bool dup()
     vm.dup();
     vm.add();
     return EXPECT_VALUE(vm, "Dup", 2);
+}
+
+bool dupn_from_empty()
+{
+    VM vm;
+    vm.dupn(55);
+    return EXPECT_ERROR(vm, "DupN from Empty");
+}
+
+bool dupn_negative()
+{
+    VM vm;
+    vm.push(0);
+    vm.dupn(-1);
+    return EXPECT_ERROR(vm, "DupN Negative");
+}
+
+bool dupn_zero()
+{
+    VM vm;
+    vm.push(0);
+    vm.dupn(0);
+    return EXPECT_ERROR(vm, "DupN Zero");
+}
+bool dupn_too_few()
+{
+    VM vm;
+    vm.push(0);
+    vm.dupn(5);
+    return EXPECT_ERROR(vm, "DupN Too Few");
+}
+
+bool dupn_first()
+{
+    VM vm;
+    vm.push(10);
+    vm.push(20);
+    vm.push(30);
+    vm.dupn(1);
+    return EXPECT_VALUE(vm, "DupN First", 30);
+}
+
+bool dupn_middle()
+{
+    VM vm;
+    vm.push(10);
+    vm.push(20);
+    vm.push(30);
+    vm.dupn(2);
+    return EXPECT_VALUE(vm, "DupN Middle", 20);
+}
+
+bool dupn_last()
+{
+    VM vm;
+    vm.push(10);
+    vm.push(20);
+    vm.push(30);
+    vm.dupn(3);
+    return EXPECT_VALUE(vm, "DupN Last", 10);
+}
+
+void stack_suite(Runner &runner)
+{
+    runner(push);
+    runner(pop_to_empty);
+    runner(pop_from_empty);
+    runner(pop);
+    runner(dup_from_empty);
+    runner(dup);
+
+    runner(dupn_from_empty);
+    runner(dupn_negative);
+    runner(dupn_too_few);
+    runner(dupn_first);
+    runner(dupn_middle);
+    runner(dupn_last);
 }
 
 bool add_too_few()
@@ -389,6 +466,58 @@ void jmp_suite(Runner &runner, void (VM::*op)(const std::string &), const char *
         return jxx_when_gt(op, base + " when GT", gt ? 1 : 0);
     });
 }
+
+bool fibonacci_test(int arg, string const &label, int res)
+{
+    VM vm;
+    vm.push(arg);
+    vm.dup();
+    vm.jlt("ERROR_CASE");
+
+    vm.push(1); // init the accumulator
+
+    vm.label("LOOP");
+    vm.dupn(2);
+    vm.jle("LOOP_EXIT");
+
+    vm.dupn(2);
+    vm.mul();
+    vm.swap();
+    vm.push(1);
+    vm.sub();
+    vm.swap();
+    vm.jmp("LOOP");
+
+    vm.label("LOOP_EXIT");
+    vm.swap();
+    vm.pop();
+    vm.jmp("EXIT");
+
+    vm.label("ERROR_CASE");
+    vm.push(-1);
+    vm.jmp("EXIT");
+
+    vm.label("EXIT");
+
+    return EXPECT_VALUE(vm, label, res);
+}
+
+void fibonacci_suite(Runner &runner)
+{
+    runner([&]() -> bool {
+        return fibonacci_test(-1, "Fibonacci -1", -1);
+    });
+    runner([&]() -> bool {
+        return fibonacci_test(0, "Fibonacci 0", 1);
+    });
+    runner([&]() -> bool {
+        return fibonacci_test(1, "Fibonacci 1", 1);
+    });
+    runner([&]() -> bool {
+        return fibonacci_test(5, "Fibonacci 5", 120);
+    });
+}
+
 } // namespace
 
 int main(void)
@@ -396,12 +525,9 @@ int main(void)
     Runner runner;
 
     runner(empty_program);
-    runner(push);
-    runner(pop_to_empty);
-    runner(pop_from_empty);
-    runner(pop);
-    runner(dup_from_empty);
-    runner(dup);
+
+    stack_suite(runner);
+
     runner(add_too_few);
     runner(add);
     runner(sub_too_few);
@@ -436,6 +562,8 @@ int main(void)
     jmp_suite(runner, &VM::jle, "JLE", true, true, false, true);
     jmp_suite(runner, &VM::jgt, "JGT", false, false, true, true);
     jmp_suite(runner, &VM::jge, "JGE", false, true, true, true);
+
+    fibonacci_suite(runner);
 
     return runner.report();
 }

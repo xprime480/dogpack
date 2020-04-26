@@ -65,6 +65,24 @@ VM_exec_status VM_executor::exec(bool verbose)
             is_stack_available("DUP");
             break;
 
+        case DUPN:
+            do_instructions(
+                [this]() {
+                    int target;
+                    memcpy((void *)&target, (void *)&program[pc], sizeof(int));
+                    pc += sizeof(int);
+                    if (target <= 0 || target > (int)sp)
+                    {
+                        status = "DUPN index out of range";
+                        return;
+                    }
+                    stack[sp] = stack[sp - target];
+                    ++sp;
+                },
+                1, 1, "DUPN");
+            is_stack_available("DUPN");
+            break;
+
         case SWAP:
             do_instructions(
                 [this]() {
@@ -255,25 +273,25 @@ void VM_executor::do_instructions(std::function<void(void)> instr, size_t argcou
 
 void VM_executor::do_jump(std::function<bool(void)> check, size_t argcount, const char *name)
 {
-            do_instructions(
-                [this, check]() {
-                    int target = get_jump_target();
-                    if (target < 0)
-                    {
-                        return;
-                    }
+    do_instructions(
+        [this, check]() {
+            int target = get_jump_target();
+            if (target < 0)
+            {
+                return;
+            }
 
-                    bool jumping = check();
-                    if (jumping)
-                    {
-                        pc = (unsigned int)target;
-                    }
-                    else
-                    {
-                        pc += sizeof(int);
-                    }
-                },
-                argcount, 0, name);
+            bool jumping = check();
+            if (jumping)
+            {
+                pc = (unsigned int)target;
+            }
+            else
+            {
+                pc += sizeof(int);
+            }
+        },
+        argcount, 0, name);
 }
 
 void VM_executor::trace(unsigned int pc, int *stack, unsigned int sp) const
@@ -308,6 +326,14 @@ void VM_executor::trace(unsigned int pc, int *stack, unsigned int sp) const
     case DUP:
         cerr << "DUP\n";
         break;
+
+    case DUPN:
+    {
+        int val;
+        memcpy((void *)&val, (void *)&program[pc], sizeof(int));
+        cerr << "DUPN " << val << "\n";
+        break;
+    }
 
     case ADD:
         cerr << "ADD\n";

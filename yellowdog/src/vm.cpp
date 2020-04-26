@@ -29,6 +29,14 @@ void VM::dup()
     maybe_add_op(DUP);
 }
 
+void VM::dupn(int which)
+{
+    if (maybe_add_op(DUPN))
+    {
+        maybe_add_arg(which);
+    }
+}
+
 void VM::swap()
 {
     maybe_add_op(SWAP);

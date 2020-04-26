@@ -1,7 +1,7 @@
 ## Yellow Dog Virtual Machine
 
 This is the Yellow Dog Virtual Machine.  It is a stack machine that supports the following basic 
-arithmetical operations: `+`, `-`, `*`, and `/`.  In addition, is supports value testing and both
+arithmetical operations: `+`, `-`, `*`, and `/`.  In addition, is supports value comparison and both
 conditional and unconditional program jumps.
 
 It is defined as follows:
@@ -10,7 +10,6 @@ It is defined as follows:
 
 The data available to the program consists entirely of a single stack which
 can hold integers.  The stack is initialized with no elements.
-
 
 #### Instructions
 
@@ -23,6 +22,7 @@ are unaffected by the operation.
 | `PUSH val` | `S` | `val S` | |
 | `POP`  | `val S` | `S` | |
 | `DUP`  | `val S` | `val val S` | |
+| `DUPN n`  | `x1 x2 ... xn S` | `xn x1 x2 ... xn S` | duplicate Nth value to top of stack |
 | `SWAP` | `x y S` | `y x S` | |
 | `ADD` | `x y S` | `y+x S` | |
 | `SUB` | `x y S` | `y-x S` | |
@@ -36,21 +36,22 @@ are unaffected by the operation.
 | `JGT label` | `x S` | `S` | program counter set to `label` if `x > 0` | 
 | `JGE label` | `x S` | `S` | program counter set to `label` if `x >= 0` | 
 | `JNE label` | `x S` | `S` | program counter set to `label` if `x <> 0` | 
-| `label` | `S` | `S` | the next program counter is aliased to `label`|
+| `label` | `S` | `S` | the next program counter is aliased to `label`.  This is not an instruction per se. |
 
 #### Control Flow
 
 Control Starts at the beginning of a program and executes one instruction at a time until either an error is
 encountered, a jump instruction is evaluated, or all instructions have been executed.  If an error is
-encountered, a relevant error message is printed and execution stops.  If execution finishes normally, the top 
-of the stack is printed.  It is an error if there is no value on the stack at the end.
+encountered, a relevant error message is returned to the caller and execution stops.  If execution finishes
+normally, the top of the stack is printed.  It is an error if there is no value on the stack at the end.
 
 #### Error Conditions
 
 The following conditions are reported errors:
 
 - `POP`, `DUP`, conditional `Jxx` instruction while stack is empty
-- `PUSH` or `DUP` when stack is full
+- `DUPN n` when n outside range 1 .. stacksize
+- `PUSH` or `DUP` or `DUPN` when stack is full
 - `ADD`, `SUB`, `MUL`, `DIV`, `SWAP`, `CMP` instruction with fewer than two values on the stack.
 - `DIV` with `x` equal to 0
 - `Jxx` instruction where `label` has not been defined.

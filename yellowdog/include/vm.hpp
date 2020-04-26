@@ -19,6 +19,7 @@ public:
     void push(int val);
     void pop();
     void dup();
+    void dupn(int which);
     void swap();
     void add();
     void sub();
