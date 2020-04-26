@@ -1,3 +1,5 @@
+
+#include <functional>
 #include <iostream>
 
 #include "../include/vm.hpp"
@@ -8,16 +10,16 @@ namespace
 {
 class Runner
 {
-    public:
+public:
     Runner()
-    : count(0u), passed(0u)
+        : count(0u), passed(0u)
     {
     }
 
-    void operator()(bool (*fn)())
+    void operator()(std::function<bool()> fn)
     {
         ++count;
-        if ( fn() )
+        if (fn())
         {
             ++passed;
         }
@@ -25,26 +27,27 @@ class Runner
 
     int report() const
     {
-        cout << "\n" << passed << " passed out of " << count << " tests\n";
+        cout << "\n"
+             << passed << " passed out of " << count << " tests\n";
         return passed == count ? 0 : 1;
     }
 
-    private:
+private:
     size_t count;
     size_t passed;
 };
 
-bool EXPECT_ERROR(VM &vm, const char *msg, bool verbose=false)
+bool EXPECT_ERROR(VM &vm, string const &label, bool verbose = false)
 {
     VM_exec_status status = vm.exec(verbose);
     if (status.is_status_ok())
     {
-        cerr << "[FAIL] " << msg << ", expected Error, got " << status.get_program_value() << "\n";
+        cerr << "[FAIL] " << label << ", expected Error, got " << status.get_program_value() << "\n";
         return false;
     }
     else
     {
-        cerr << "[PASS] " << msg << "\n";
+        cerr << "[PASS] " << label << "\n";
         if (verbose)
         {
             cerr << "\tactual error message: " << status.get_message() << "\n";
@@ -53,7 +56,7 @@ bool EXPECT_ERROR(VM &vm, const char *msg, bool verbose=false)
     }
 }
 
-bool EXPECT_VALUE(VM &vm, const char *msg, int value, bool verbose = false)
+bool EXPECT_VALUE(VM &vm, string const &label, int value, bool verbose = false)
 {
     VM_exec_status status = vm.exec(verbose);
     if (status.is_status_ok())
@@ -61,20 +64,28 @@ bool EXPECT_VALUE(VM &vm, const char *msg, int value, bool verbose = false)
         int program_value = status.get_program_value();
         if (value == program_value)
         {
-            cerr << "[PASS] " << msg << "\n";
+            cerr << "[PASS] " << label << "\n";
             return true;
         }
         else
         {
-            cerr << "[FAIL] " << msg << ", expected " << value << ", got " << program_value << "\n";
+            cerr << "[FAIL] " << label << ", expected " << value << ", got " << program_value << "\n";
             return false;
         }
     }
     else
     {
-        cerr << "[FAIL] " << msg << ", expected value " << value << ", got error" << status.get_message() << "\n";
+        cerr << "[FAIL] " << label << ", expected value " << value << ", got error" << status.get_message() << "\n";
         return false;
     }
+}
+
+bool one_arg_wants_two(void (VM::*op)(), const char *name)
+{
+    VM vm;
+    vm.push(1);
+    (vm.*op)();
+    return EXPECT_ERROR(vm, name);
 }
 
 bool empty_program()
@@ -132,10 +143,7 @@ bool dup()
 
 bool add_too_few()
 {
-    VM vm;
-    vm.push(1);
-    vm.add();
-    return EXPECT_ERROR(vm, "Add Too Few");
+    return one_arg_wants_two(&VM::add, "Add Too Few");
 }
 
 bool add()
@@ -149,10 +157,7 @@ bool add()
 
 bool sub_too_few()
 {
-    VM vm;
-    vm.push(1);
-    vm.sub();
-    return EXPECT_ERROR(vm, "Sub Too Few");
+    return one_arg_wants_two(&VM::sub, "Sub Too Few");
 }
 
 bool sub()
@@ -166,10 +171,7 @@ bool sub()
 
 bool mul_too_few()
 {
-    VM vm;
-    vm.push(1);
-    vm.mul();
-    return EXPECT_ERROR(vm, "Mul Too Few");
+    return one_arg_wants_two(&VM::mul, "Mul Too Few");
 }
 
 bool mul()
@@ -183,10 +185,7 @@ bool mul()
 
 bool div_too_few()
 {
-    VM vm;
-    vm.push(1);
-    vm.div();
-    return EXPECT_ERROR(vm, "Div Too Few");
+    return one_arg_wants_two(&VM::div, "Div Too Few");
 }
 
 bool div_by_zero()
@@ -198,7 +197,7 @@ bool div_by_zero()
     return EXPECT_ERROR(vm, "Div by Zero");
 }
 
-bool div()
+bool idiv()
 {
     VM vm;
     vm.push(12);
@@ -224,7 +223,7 @@ bool longer_prog()
 bool program_too_long()
 {
     VM vm;
-    for ( int i = 0 ; i < 1009 ; ++i )
+    for (int i = 0; i < 1009; ++i)
     {
         vm.push(i);
     }
@@ -261,18 +260,8 @@ bool duplicate_label()
     vm.push(2);
     vm.label("X");
     vm.push(2);
-    
+
     return EXPECT_ERROR(vm, "Duplicate Label");
-}
-
-bool unknown_label()
-{
-    VM vm;
-
-    vm.push(1);
-    vm.jmp("X");
-
-    return EXPECT_ERROR(vm, "Unknown Label");
 }
 
 bool run_too_long()
@@ -289,10 +278,7 @@ bool run_too_long()
 
 bool cmp_too_few()
 {
-    VM vm;
-    vm.push(1);
-    vm.cmp();
-    return EXPECT_ERROR(vm, "Cmp Too Few");
+    return one_arg_wants_two(&VM::cmp, "CMP Too Few");
 }
 
 bool cmp_lt()
@@ -324,13 +310,10 @@ bool cmp_gt()
 
 bool swap_too_few()
 {
-    VM vm;
-    vm.push(1);
-    vm.swap();
-    return EXPECT_ERROR(vm, "Swap Too Few");
+    return one_arg_wants_two(&VM::swap, "Swap Too Few");
 }
 
-bool swap()
+bool xswap()
 {
     VM vm;
     vm.push(1);
@@ -339,49 +322,73 @@ bool swap()
     return EXPECT_VALUE(vm, "Swap", 1);
 }
 
-bool jeq_too_few()
+bool jxx_without_test(void (VM::*op)(const std::string &), string const &label)
 {
     VM vm;
-    vm.jeq("L00");
+    (vm.*op)("L00");
     vm.label("L00");
-    vm.push(0);
-    return EXPECT_ERROR(vm, "JEQ Too Few");
+    return EXPECT_ERROR(vm, label);
 }
 
-bool jeq_unknown_label()
+bool jxx_to_missing_label(void (VM::*op)(const std::string &), string const &name)
 {
     VM vm;
     vm.push(0);
-    vm.jeq("L00");
-    return EXPECT_ERROR(vm, "JEQ Too Few");
+    (vm.*op)("L00");
+    return EXPECT_ERROR(vm, name);
 }
 
-bool jeq_eq()
+bool jxx_when_test(void (VM::*op)(const std::string &), string const &label, int exp, int test_value)
 {
     VM vm;
+    vm.push(test_value);
+    (vm.*op)("L00");
     vm.push(0);
-    vm.jeq("L00");
-    vm.push(1);
     vm.jmp("L02");
     vm.label("L00");
-    vm.push(2);
+    vm.push(1);
     vm.label("L02");
-    return EXPECT_VALUE(vm, "JEQ EQ", 2);
+    return EXPECT_VALUE(vm, label, exp);
 }
 
-bool jeq_ne()
+bool jxx_when_lt(void (VM::*op)(const std::string &), string const &label, int exp)
 {
-    VM vm;
-    vm.push(1);
-    vm.jeq("L00");
-    vm.push(1);
-    vm.jmp("L02");
-    vm.label("L00");
-    vm.push(2);
-    vm.label("L02");
-   return EXPECT_VALUE(vm, "JEQ NE", 1);
+    return jxx_when_test(op, label, exp, -1);
 }
 
+bool jxx_when_eq(void (VM::*op)(const std::string &), string const &label, int exp)
+{
+    return jxx_when_test(op, label, exp, 0);
+}
+
+bool jxx_when_gt(void (VM::*op)(const std::string &), string const &label, int exp)
+{
+    return jxx_when_test(op, label, exp, 1);
+}
+
+void jmp_suite(Runner &runner, void (VM::*op)(const std::string &), const char *name, bool lt, bool eq, bool gt, bool args)
+{
+    const string base(name);
+
+    if (args)
+    {
+        runner([&]() -> bool {
+            return jxx_without_test(op, base + " Too Few Args");
+        });
+    }
+    runner([&]() -> bool {
+        return jxx_to_missing_label(op, base + " to unknown label");
+    });
+    runner([&]() -> bool {
+        return jxx_when_lt(op, base + " when LT", lt ? 1 : 0);
+    });
+    runner([&]() -> bool {
+        return jxx_when_eq(op, base + " when EQ", eq ? 1 : 0);
+    });
+    runner([&]() -> bool {
+        return jxx_when_gt(op, base + " when GT", gt ? 1 : 0);
+    });
+}
 } // namespace
 
 int main(void)
@@ -403,15 +410,13 @@ int main(void)
     runner(mul);
     runner(div_too_few);
     runner(div_by_zero);
-    runner(div);
+    runner(idiv);
     runner(longer_prog);
     runner(program_too_long);
 
     runner(overflow_push);
     runner(overflow_dup);
 
-    runner(unknown_label);
-    runner(duplicate_label);
     runner(run_too_long);
 
     runner(cmp_too_few);
@@ -420,12 +425,17 @@ int main(void)
     runner(cmp_gt);
 
     runner(swap_too_few);
-    runner(swap);
+    runner(xswap);
 
-    runner(jeq_too_few);
-    runner(jeq_unknown_label);
-    runner(jeq_eq);
-    runner(jeq_ne);
+    runner(duplicate_label);
+
+    jmp_suite(runner, &VM::jmp, "JMP", true, true, true, false);
+    jmp_suite(runner, &VM::jeq, "JEQ", false, true, false, true);
+    jmp_suite(runner, &VM::jne, "JNE", true, false, true, true);
+    jmp_suite(runner, &VM::jlt, "JLT", true, false, false, true);
+    jmp_suite(runner, &VM::jle, "JLE", true, true, false, true);
+    jmp_suite(runner, &VM::jgt, "JGT", false, false, true, true);
+    jmp_suite(runner, &VM::jge, "JGE", false, true, true, true);
 
     return runner.report();
 }

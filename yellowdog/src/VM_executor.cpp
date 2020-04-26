@@ -129,26 +129,58 @@ VM_exec_status VM_executor::exec(bool verbose)
 
         case JMP:
             do_jump(
-                [this](int target) {
-                    pc = (unsigned int)target;
+                [this]() -> bool {
+                    return true;
                 },
                 0, "JMP");
             break;
 
         case JEQ:
             do_jump(
-                [this](int target) {
-                    int test = stack[--sp];
-                    if (test == 0)
-                    {
-                        pc = (unsigned int)target;
-                    }
-                    else
-                    {
-                        pc += sizeof(int);
-                    }
+                [this]() -> bool {
+                    return stack[--sp] == 0;
                 },
                 1, "JEQ");
+            break;
+
+        case JNE:
+            do_jump(
+                [this]() -> bool {
+                    return stack[--sp] != 0;
+                },
+                1, "JNE");
+            break;
+
+        case JLT:
+            do_jump(
+                [this]() -> bool {
+                    return stack[--sp] < 0;
+                },
+                1, "JLT");
+            break;
+
+        case JLE:
+            do_jump(
+                [this]() -> bool {
+                    return stack[--sp] <= 0;
+                },
+                1, "JLE");
+            break;
+
+        case JGT:
+            do_jump(
+                [this]() -> bool {
+                    return stack[--sp] > 0;
+                },
+                1, "JGT");
+            break;
+
+        case JGE:
+            do_jump(
+                [this]() -> bool {
+                    return stack[--sp] >= 0;
+                },
+                1, "JGE");
             break;
 
         default:
@@ -221,17 +253,25 @@ void VM_executor::do_instructions(std::function<void(void)> instr, size_t argcou
     }
 }
 
-void VM_executor::do_jump(std::function<void(int)> jump, size_t argcount, const char *name)
+void VM_executor::do_jump(std::function<bool(void)> check, size_t argcount, const char *name)
 {
             do_instructions(
-                [this, jump]() {
+                [this, check]() {
                     int target = get_jump_target();
                     if (target < 0)
                     {
                         return;
                     }
 
-                    jump(target);
+                    bool jumping = check();
+                    if (jumping)
+                    {
+                        pc = (unsigned int)target;
+                    }
+                    else
+                    {
+                        pc += sizeof(int);
+                    }
                 },
                 argcount, 0, name);
 }
