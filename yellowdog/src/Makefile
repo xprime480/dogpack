@@ -1,15 +1,17 @@
 
-all : ../bin/libvm.a
+LIB = ../LIB/libvm.a
 
 SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.cpp=.o)
 DEP = $(SRC:.cpp=.d)
 
 CPP = /usr/bin/g++
-INC =  -I ../include
+INC =  -I ../../common/include -I ../include
 CPPFLAGS = -g -Wall $(INC)
 
-../bin/libvm.a : $(OBJ)
+all : $(LIB)
+
+$(LIB) : $(OBJ)
 	ar crf	$@ $(OBJ) $(SUBOBJ)
 
 $(OBJ) : %.o : %.cpp

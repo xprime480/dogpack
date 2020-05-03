@@ -3,4 +3,5 @@ bin
 *.log
 *.o
 *.d
+*.a
 .vscode

@@ -1,12 +1,13 @@
 
-LIB = ../LIB/libvm.a
+
+LIB = ../lib/libk9common.a
 
 SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.cpp=.o)
 DEP = $(SRC:.cpp=.d)
 
 CPP = /usr/bin/g++
-INC =  -I ../../common/include -I ../include
+INC =  -I ../include
 CPPFLAGS = -g -Wall $(INC)
 
 all : $(LIB)
