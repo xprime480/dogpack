@@ -65,3 +65,27 @@ bool expect_value_helper(string const &label, int value, bool verbose, VM_exec_s
         return false;
     }
 }
+
+bool expect_run_ok_helper(std::string const &label, std::function<bool(bool)> fn, bool verbose, VM_exec_status status)
+{
+    if (status.is_status_ok())
+    {
+        if (fn(verbose))
+        {
+            cerr << "[PASS] " << label << "\n";
+            return true;
+        }
+        else
+        {
+            cerr << "[FAIL] " << label << ", failed additional validations\n";
+            return false;
+        }
+    }
+    else
+    {
+        cerr << "[FAIL] " << label << ", expected normal termination, got error: " << status.get_message() << "\n";
+        return false;
+    }
+}
+
+

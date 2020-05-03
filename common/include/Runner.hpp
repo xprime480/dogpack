@@ -38,4 +38,15 @@ bool EXPECT_VALUE(VM &vm, std::string const &label, int value, bool verbose = fa
     return expect_value_helper(label, value, verbose, status);
 }
 
+extern bool expect_run_ok_helper(std::string const &label, std::function<bool(bool)> fn, bool verbose, VM_exec_status status);
+
+template <typename VM>
+bool EXPECT_RUN_OK(VM &vm, std::string const &label, std::function<bool(bool)> fn, bool verbose = false)
+{
+    VM_exec_status status = vm.exec(verbose);
+    return expect_run_ok_helper(label, fn, verbose, status);
+}
+
+
+
 #endif
