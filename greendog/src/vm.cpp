@@ -21,6 +21,11 @@ void VM::store(unsigned int reg, unsigned int addr)
     maybe_add_op_RA(STORE, reg, addr);
 }
 
+void VM::add(unsigned int r1, unsigned int r2, unsigned int r3)
+{
+    maybe_add_op_RRR(ADD, r1, r2, r3);
+}
+
 VM_exec_status VM::exec(bool verbose)
 {
     if (!valid_program)
@@ -36,7 +41,12 @@ VM_exec_status VM::exec(bool verbose)
     }
 
     VM_executor executor(program, program_size, heap);
-    return executor.exec(verbose);
+    VM_exec_status rv = executor.exec(verbose);
+    if ( verbose ) 
+    {
+        dump_heap(0, 4);
+    }
+    return rv;
 }
 
 void VM::set_heap(unsigned int addr, int value)
@@ -47,7 +57,7 @@ void VM::set_heap(unsigned int addr, int value)
     }
 }
 
-int VM::get_heap(unsigned int addr)
+int VM::get_heap(unsigned int addr) const
 {
     if (addr < MAX_HEAP_SIZE)
     {
@@ -55,6 +65,16 @@ int VM::get_heap(unsigned int addr)
     }
 
     return 0xdeadbeef;
+}
+
+void VM::dump_heap(unsigned int from, unsigned int to) const
+{
+    cerr << "Heap (" << &heap[0] << "):\n";
+    while ( from <= to ) 
+    {
+        cerr << "\t" << from << ":\t" << get_heap(from) << "\n";
+        ++from;
+    }
 }
 
 bool VM::check_program_size()
@@ -100,6 +120,21 @@ void VM::maybe_add_op_RA(OPCODE op, unsigned int reg, unsigned int addr)
         if (check_program_size() && check_register(reg) && check_address(addr))
         {
             unsigned int instr = (((unsigned int)op) << 24) | (reg << 16) | addr;
+            program[program_size++] = instr;
+        }
+    }
+}
+
+void VM::maybe_add_op_RRR(OPCODE op, unsigned int r1, unsigned int r2, unsigned int r3)
+{
+    if (valid_program)
+    {
+        if (check_program_size() && check_register(r1) && check_register(r2) && check_register(r3))
+        {
+            unsigned int instr = (((unsigned int)op) << 24) | 
+                                  (r1 << 16) | 
+                                  (r2 << 8) |
+                                  r3;
             program[program_size++] = instr;
         }
     }

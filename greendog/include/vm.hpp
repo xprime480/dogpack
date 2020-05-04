@@ -12,10 +12,13 @@ public:
     void load(unsigned int reg, unsigned int addr);
     void store(unsigned int reg, unsigned int addr);
 
+    void add(unsigned int r1, unsigned int r2, unsigned int r3);
+
     VM_exec_status exec(bool verbose = false);
 
     void set_heap(unsigned int addr, int value);
-    int get_heap(unsigned int addr);
+    int get_heap(unsigned int addr) const;
+    void dump_heap(unsigned int from, unsigned int to) const;
 
 private:
     unsigned int program_size;
@@ -27,6 +30,7 @@ private:
     bool check_register(unsigned int reg);
     bool check_address(unsigned int addr);
     void maybe_add_op_RA(OPCODE op, unsigned int reg, unsigned int addr);
+    void maybe_add_op_RRR(OPCODE op, unsigned int r1, unsigned int r2, unsigned int r3);
 };
 
 #endif

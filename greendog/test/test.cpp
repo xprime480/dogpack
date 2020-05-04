@@ -71,6 +71,61 @@ void load_suite(Runner &runner)
     runner(load_store_ok);
 }
 
+template <typename F>
+void math_tests(Runner & runner, void (VM::*op)(unsigned int, unsigned int, unsigned int), F fn, const char * name)
+{
+    runner([op, name]()->bool {
+        VM vm;
+        (vm.*op)(32, 1, 2);
+        char buf[128];
+        sprintf(buf, "%s Bad Register 1", name);
+        EXPECT_ERROR(vm, buf);
+    });
+    runner([op, name]()->bool {
+        VM vm;
+        (vm.*op)(0, 32, 2);
+        char buf[128];
+        sprintf(buf, "%s Bad Register 2", name);
+        EXPECT_ERROR(vm, buf);
+    });
+    runner([op, name]()->bool {
+        VM vm;
+        (vm.*op)(0, 1, 32);
+        char buf[128];
+        sprintf(buf, "%s Bad Register 3", name);
+        EXPECT_ERROR(vm, buf);
+    });
+    runner([op, name, fn]()->bool {
+        VM vm;
+        vm.load(0, 0);
+        vm.load(1, 1);
+        (vm.*op)(0, 1, 2);
+        vm.store(2, 2);
+        char buf[128];
+        sprintf(buf, "%s Correctly", name);
+        vm.set_heap(0, 12);
+        vm.set_heap(1, 4);
+        return EXPECT_RUN_OK(vm, buf, [&vm, fn](bool verbose) -> bool {
+            if ( verbose )
+            {
+                vm.dump_heap(0, 2);
+            }
+            int act = vm.get_heap(2);
+            int exp = fn(12, 4);
+            if ( verbose )
+            {
+                cerr << "Expected: " << exp << "; actual: " << act << "\n";
+            }
+            return act == exp;
+        });
+    });
+}
+
+void math_suite(Runner & runner)
+{
+    math_tests(runner, &VM::add, plus<int>(), "Add");
+}
+
 int main(void)
 {
     Runner runner;
@@ -78,6 +133,7 @@ int main(void)
     runner(empty_program);
 
     load_suite(runner);
+    math_suite(runner);
 
     return runner.report();
 }

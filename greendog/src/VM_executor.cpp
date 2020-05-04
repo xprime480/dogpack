@@ -50,6 +50,14 @@ VM_exec_status VM_executor::exec(bool verbose)
                 "STORE");
             break;
 
+        case ADD:
+            do_instructions(
+                [this, &instr]() {
+                    registers[instr.r3] = registers[instr.r1] + registers[instr.r2];
+                },
+                "STORE");
+            break;
+
         default:
             status = "Internal Error: Invalid OPCODE detected";
             break;
@@ -96,6 +104,11 @@ void VM_executor::trace(Instruction const & instr) const
         cerr << "STORE r" << instr.r1 << " " << instr.addr << " (" << registers[instr.r1] <<")\n";
         break;
 
+    case ADD:
+        cerr << "ADD r" << instr.r1 << " r" << instr.r2 << " r" << instr.r3 << " (" << registers[instr.r1]
+        << " + " << registers[instr.r2] << ")\n"; 
+        break;
+
     default:
         cerr << "unknown op code: " << op << "\n";
     }
@@ -117,9 +130,13 @@ VM_executor::Instruction::Instruction(unsigned int code, bool verbose)
             decode_RA(code);
             break;
 
+        case ADD:
+            decode_RRR(code);
+            break;
+
         default:
-        op = 0;
-        break;
+            op = 0;
+            break;
     }
 }
 
@@ -127,4 +144,11 @@ void VM_executor::Instruction::decode_RA(unsigned int code)
 {
     r1 = (code >> 16) & 0xFF;
     addr = code & 0xFFFF;
+}
+
+void VM_executor::Instruction::decode_RRR(unsigned int code)
+{
+    r1 = (code >> 16) & 0xFF;
+    r2 = (code >> 8) & 0xFF;
+    r3 = code & 0xFF;
 }

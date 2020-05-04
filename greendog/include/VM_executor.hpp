@@ -42,6 +42,7 @@ private:
     private:
     
         void decode_RA(unsigned int code);
+        void decode_RRR(unsigned int code);
     };
 
     void trace(Instruction const & instr) const;

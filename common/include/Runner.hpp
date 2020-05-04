@@ -47,6 +47,4 @@ bool EXPECT_RUN_OK(VM &vm, std::string const &label, std::function<bool(bool)> f
     return expect_run_ok_helper(label, fn, verbose, status);
 }
 
-
-
 #endif
