@@ -13,6 +13,9 @@ public:
     void store(unsigned int reg, unsigned int addr);
 
     void add(unsigned int r1, unsigned int r2, unsigned int r3);
+    void sub(unsigned int r1, unsigned int r2, unsigned int r3);
+    void mul(unsigned int r1, unsigned int r2, unsigned int r3);
+    void div(unsigned int r1, unsigned int r2, unsigned int r3);
 
     VM_exec_status exec(bool verbose = false);
 

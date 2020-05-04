@@ -55,7 +55,39 @@ VM_exec_status VM_executor::exec(bool verbose)
                 [this, &instr]() {
                     registers[instr.r3] = registers[instr.r1] + registers[instr.r2];
                 },
-                "STORE");
+                "ADD");
+            break;
+
+        case SUB:
+            do_instructions(
+                [this, &instr]() {
+                    registers[instr.r3] = registers[instr.r1] - registers[instr.r2];
+                },
+                "SUB");
+            break;
+
+        case MUL:
+            do_instructions(
+                [this, &instr]() {
+                    registers[instr.r3] = registers[instr.r1] * registers[instr.r2];
+                },
+                "MUL");
+            break;
+
+        case DIV:
+            do_instructions(
+                [this, &instr]() {
+                    int divisor = registers[instr.r2];
+                    if (divisor == 0)
+                    {
+                        status = "Division by Zero";
+                    }
+                    else
+                    {
+                        registers[instr.r3] = registers[instr.r1] / divisor;
+                    }
+                },
+                "DIV");
             break;
 
         default:
@@ -109,6 +141,21 @@ void VM_executor::trace(Instruction const & instr) const
         << " + " << registers[instr.r2] << ")\n"; 
         break;
 
+    case SUB:
+        cerr << "SUB r" << instr.r1 << " r" << instr.r2 << " r" << instr.r3 << " (" << registers[instr.r1]
+        << " - " << registers[instr.r2] << ")\n"; 
+        break;
+
+    case MUL:
+        cerr << "MUL r" << instr.r1 << " r" << instr.r2 << " r" << instr.r3 << " (" << registers[instr.r1]
+        << " * " << registers[instr.r2] << ")\n"; 
+        break;
+
+    case DIV:
+        cerr << "DIV r" << instr.r1 << " r" << instr.r2 << " r" << instr.r3 << " (" << registers[instr.r1]
+        << " / " << registers[instr.r2] << ")\n"; 
+        break;
+
     default:
         cerr << "unknown op code: " << op << "\n";
     }
@@ -131,6 +178,9 @@ VM_executor::Instruction::Instruction(unsigned int code, bool verbose)
             break;
 
         case ADD:
+        case SUB:
+        case MUL:
+        case DIV:
             decode_RRR(code);
             break;
 

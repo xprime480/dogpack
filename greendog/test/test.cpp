@@ -121,9 +121,24 @@ void math_tests(Runner & runner, void (VM::*op)(unsigned int, unsigned int, unsi
     });
 }
 
+bool divide_by_zero()
+{
+    VM vm;
+    vm.load(0, 0);
+    vm.load(1, 1);
+    vm.div(0, 1, 2);
+    vm.store(2, 2);
+    vm.set_heap(0, 1);
+    vm.set_heap(1, 0);
+    EXPECT_ERROR(vm, "Divide By Zero");
+}
 void math_suite(Runner & runner)
 {
     math_tests(runner, &VM::add, plus<int>(), "Add");
+    math_tests(runner, &VM::sub, minus<int>(), "Sub");
+    math_tests(runner, &VM::mul, multiplies<int>(), "Mul");
+    math_tests(runner, &VM::div, divides<int>(), "Div");
+    runner(divide_by_zero);
 }
 
 int main(void)
