@@ -71,6 +71,40 @@ void load_suite(Runner &runner)
     runner(load_store_ok);
 }
 
+template<typename F>
+void binop_test(Runner & runner,
+                int lhs,
+                int rhs,
+                void (VM::*op)(unsigned int, unsigned int, unsigned int), 
+                F fn, 
+                const char * name)
+{
+    runner([&]()->bool {
+        VM vm;
+        vm.load(0, 0);
+        vm.load(1, 1);
+        (vm.*op)(0, 1, 2);
+        vm.store(2, 2);
+        char buf[128];
+        sprintf(buf, "%s Correctly", name);
+        vm.set_heap(0, lhs);
+        vm.set_heap(1, rhs);
+        return EXPECT_RUN_OK(vm, buf, [&vm, lhs, rhs, op, fn, name](bool verbose) -> bool {
+            if ( verbose )
+            {
+                vm.dump_heap(0, 2);
+            }
+            int act = vm.get_heap(2);
+            int exp = fn(lhs, rhs);
+            if ( verbose )
+            {
+                cerr << "Expected: " << exp << "; actual: " << act << "\n";
+            }
+            return act == exp;
+        });
+    });
+}
+
 template <typename F>
 void math_tests(Runner & runner, void (VM::*op)(unsigned int, unsigned int, unsigned int), F fn, const char * name)
 {
@@ -95,31 +129,8 @@ void math_tests(Runner & runner, void (VM::*op)(unsigned int, unsigned int, unsi
         sprintf(buf, "%s Bad Register 3", name);
         EXPECT_ERROR(vm, buf);
     });
-    runner([op, name, fn]()->bool {
-        VM vm;
-        vm.load(0, 0);
-        vm.load(1, 1);
-        (vm.*op)(0, 1, 2);
-        vm.store(2, 2);
-        char buf[128];
-        sprintf(buf, "%s Correctly", name);
-        vm.set_heap(0, 12);
-        vm.set_heap(1, 4);
-        return EXPECT_RUN_OK(vm, buf, [&vm, fn](bool verbose) -> bool {
-            if ( verbose )
-            {
-                vm.dump_heap(0, 2);
-            }
-            int act = vm.get_heap(2);
-            int exp = fn(12, 4);
-            if ( verbose )
-            {
-                cerr << "Expected: " << exp << "; actual: " << act << "\n";
-            }
-            return act == exp;
-        });
-    });
-}
+
+    binop_test(runner, 12, 4, op, fn, name);}
 
 bool divide_by_zero()
 {
@@ -132,6 +143,7 @@ bool divide_by_zero()
     vm.set_heap(1, 0);
     EXPECT_ERROR(vm, "Divide By Zero");
 }
+
 void math_suite(Runner & runner)
 {
     math_tests(runner, &VM::add, plus<int>(), "Add");
@@ -139,6 +151,26 @@ void math_suite(Runner & runner)
     math_tests(runner, &VM::mul, multiplies<int>(), "Mul");
     math_tests(runner, &VM::div, divides<int>(), "Div");
     runner(divide_by_zero);
+}
+
+template <typename T>
+struct compares
+{
+    T operator()(const T & l, const T & r) const
+    {
+        return (l<r) ? -1 : ((l==r) ? 0 : 1);
+    }
+};
+
+void cmp_suite(Runner & runner)
+{
+    auto op = &VM::cmp;
+    auto fn = compares<int>();
+
+    math_tests(runner, op, fn, "Cmp");
+    binop_test(runner, -20, 20, op, fn, "CMP LT");
+    binop_test(runner, 42, 42, op, fn, "CMP EQ");
+    binop_test(runner, 42, 17, op, fn, "CMP GT");
 }
 
 int main(void)
@@ -149,6 +181,7 @@ int main(void)
 
     load_suite(runner);
     math_suite(runner);
+    cmp_suite(runner);
 
     return runner.report();
 }

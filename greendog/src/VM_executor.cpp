@@ -90,6 +90,27 @@ VM_exec_status VM_executor::exec(bool verbose)
                 "DIV");
             break;
 
+        case CMP:
+            do_instructions(
+                [this, &instr]() {
+                    const int l = registers[instr.r1];
+                    const int r = registers[instr.r2];
+                    if ( l < r )
+                    {
+                        registers[instr.r3] = -1;
+                    }
+                    else if ( l == r )
+                    {
+                        registers[instr.r3] = 0;
+                    }
+                    else
+                    {
+                        registers[instr.r3] = 1;
+                    }
+                },
+                "CMP");
+            break;
+
         default:
             status = "Internal Error: Invalid OPCODE detected";
             break;
@@ -156,6 +177,11 @@ void VM_executor::trace(Instruction const & instr) const
         << " / " << registers[instr.r2] << ")\n"; 
         break;
 
+    case CMP:
+        cerr << "CMP r" << instr.r1 << " r" << instr.r2 << " r" << instr.r3 << " (" << registers[instr.r1]
+        << " <=> " << registers[instr.r2] << ")\n"; 
+        break;
+
     default:
         cerr << "unknown op code: " << op << "\n";
     }
@@ -181,6 +207,7 @@ VM_executor::Instruction::Instruction(unsigned int code, bool verbose)
         case SUB:
         case MUL:
         case DIV:
+        case CMP:
             decode_RRR(code);
             break;
 

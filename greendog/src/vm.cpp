@@ -41,6 +41,11 @@ void VM::div(unsigned int r1, unsigned int r2, unsigned int r3)
     maybe_add_op_RRR(DIV, r1, r2, r3);
 }
 
+void VM::cmp(unsigned int r1, unsigned int r2, unsigned int r3)
+{
+    maybe_add_op_RRR(CMP, r1, r2, r3);
+}
+
 VM_exec_status VM::exec(bool verbose)
 {
     if (!valid_program)

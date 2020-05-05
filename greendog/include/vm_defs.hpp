@@ -15,5 +15,6 @@ const constexpr OPCODE ADD = 6;
 const constexpr OPCODE SUB = 7;
 const constexpr OPCODE MUL = 8;
 const constexpr OPCODE DIV = 9;
+const constexpr OPCODE CMP = 10;
 
 #endif
