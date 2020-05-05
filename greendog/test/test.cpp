@@ -173,6 +173,17 @@ void cmp_suite(Runner & runner)
     binop_test(runner, 42, 17, op, fn, "CMP GT");
 }
 
+bool program_too_long()
+{
+    VM vm;
+    for (int i = 0; i < 2048; ++i)
+    {
+        vm.add(0, 0, 0);
+    }
+
+    return EXPECT_ERROR(vm, "Program Too Long");
+}
+
 int main(void)
 {
     Runner runner;
@@ -182,6 +193,8 @@ int main(void)
     load_suite(runner);
     math_suite(runner);
     cmp_suite(runner);
+
+    runner(program_too_long);
 
     return runner.report();
 }
