@@ -184,6 +184,139 @@ bool program_too_long()
     return EXPECT_ERROR(vm, "Program Too Long");
 }
 
+bool jmp_always(int test_value)
+{
+    VM vm;
+    vm.load(0, 0);   // 0
+    vm.jmp(4);       // 1 jump if condition
+    vm.load(1, 1);   // 2
+    vm.jmp(5);       // 3 
+    vm.load(1, 2);   // 4
+    vm.store(1, 3);  // 5
+
+    vm.set_heap(0, test_value);
+    vm.set_heap(1, 0);
+    vm.set_heap(2, 1);
+
+    int exp = 1;
+
+    return EXPECT_RUN_OK(vm, "JMP", [&vm, exp](bool verbose) -> bool {
+        if ( verbose )
+        {
+            vm.dump_heap(0, 4);
+        }
+        int act = vm.get_heap(3);
+        if ( verbose )
+        {
+            cerr << "Expected: " << exp << "; actual: " << act << "\n";
+        }
+        return act == exp;
+    });
+}
+
+void jmp_suite(Runner &runner)
+{
+    const string base("JMP");
+
+    runner([&]() -> bool {
+        VM vm;
+        vm.jmp(9999);
+        return EXPECT_ERROR(vm, base + " Bad Address");
+    });
+    runner([&]() -> bool {
+        VM vm;
+        vm.jmp(22); // only detectable at run time
+        return EXPECT_ERROR(vm, base + " Bad Address @ Runtime");
+    });
+    runner([&]() -> bool {
+        return jmp_always(-1);
+    });
+    runner([&]() -> bool {
+        return jmp_always(0);
+    });
+    runner([&]() -> bool {
+        return jmp_always(+1);
+    });
+}
+
+bool jxx_bad_register(void (VM::*op)(unsigned int reg, unsigned int loc), string const &label)
+{
+    VM vm;
+    (vm.*op)(99, 0);
+    return EXPECT_ERROR(vm, label);
+}
+
+bool jxx_bad_location(void (VM::*op)(unsigned int reg, unsigned int loc), string const &label)
+{
+    VM vm;
+    (vm.*op)(0, 9999);
+    return EXPECT_ERROR(vm, label);
+}
+
+bool jxx_when_test(void (VM::*op)(unsigned int, unsigned int), string const &label, int exp, int test_value)
+{
+    VM vm;
+    vm.load(0, 0);   // 0
+    (vm.*op)(0, 4);  // 1 jump if condition
+    vm.load(1, 1);   // 2
+    vm.jmp(5);       // 3 
+    vm.load(1, 2);   // 4
+    vm.store(1, 3);  // 5
+
+    vm.set_heap(0, test_value);
+    vm.set_heap(1, 0);
+    vm.set_heap(2, 1);
+
+    return EXPECT_RUN_OK(vm, label, [&vm, exp](bool verbose) -> bool {
+        if ( verbose )
+        {
+            vm.dump_heap(0, 4);
+        }
+        int act = vm.get_heap(3);
+        if ( verbose )
+        {
+            cerr << "Expected: " << exp << "; actual: " << act << "\n";
+        }
+        return act == exp;
+    });
+}
+
+bool jxx_when_lt(void (VM::*op)(unsigned int, unsigned int), string const &label, int exp)
+{
+    return jxx_when_test(op, label, exp, -1);
+}
+
+bool jxx_when_eq(void (VM::*op)(unsigned int, unsigned int), string const &label, int exp)
+{
+    return jxx_when_test(op, label, exp, 0);
+}
+
+bool jxx_when_gt(void (VM::*op)(unsigned int, unsigned int), string const &label, int exp)
+{
+    return jxx_when_test(op, label, exp, 1);
+}
+
+void conditional_jmp_suite(Runner &runner, void (VM::*op)(unsigned int, unsigned int), const char *name, bool lt, bool eq, bool gt)
+{
+    const string base(name);
+
+    runner([&]() -> bool {
+        return jxx_bad_register(op, base + " Bad Register");
+    });
+    runner([&]() -> bool {
+        return jxx_bad_location(op, base + " Bad Location");
+    });
+    runner([&]() -> bool {
+        return jxx_when_lt(op, base + " when LT", lt ? 1 : 0);
+    });
+    runner([&]() -> bool {
+        return jxx_when_eq(op, base + " when EQ", eq ? 1 : 0);
+    });
+    runner([&]() -> bool {
+        return jxx_when_gt(op, base + " when GT", gt ? 1 : 0);
+    });
+}
+
 int main(void)
 {
     Runner runner;
@@ -195,6 +328,15 @@ int main(void)
     cmp_suite(runner);
 
     runner(program_too_long);
+
+    jmp_suite(runner);
+
+    conditional_jmp_suite(runner, &VM::jeq, "JEQ", false, true, false);
+    conditional_jmp_suite(runner, &VM::jne, "JNE", true, false, true);
+    conditional_jmp_suite(runner, &VM::jlt, "JLT", true, false, false);
+    conditional_jmp_suite(runner, &VM::jle, "JLE", true, true, false);
+    conditional_jmp_suite(runner, &VM::jgt, "JGT", false, false, true);
+    conditional_jmp_suite(runner, &VM::jge, "JGE", false, true, true);
 
     return runner.report();
 }

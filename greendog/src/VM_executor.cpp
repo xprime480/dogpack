@@ -111,6 +111,55 @@ VM_exec_status VM_executor::exec(bool verbose)
                 "CMP");
             break;
 
+        case JMP:
+            do_jump(
+                instr,
+                [this, &instr]() -> bool { return true; },
+                "JMP");
+            break;
+
+        case JEQ:
+            do_jump(
+                instr,
+                [this, &instr]() -> bool { return registers[instr.r1] == 0; },
+                "JEQ");
+            break;
+
+        case JNE:
+            do_jump(
+                instr,
+                [this, &instr]() -> bool { return registers[instr.r1] != 0; },
+                "JNE");
+            break;
+
+        case JLT:
+            do_jump(
+                instr,
+                [this, &instr]() -> bool { return registers[instr.r1] < 0; },
+                "JLT");
+            break;
+
+        case JLE:
+            do_jump(
+                instr,
+                [this, &instr]() -> bool { return registers[instr.r1] <= 0; },
+                "JLE");
+            break;
+
+        case JGT:
+            do_jump(
+                instr,
+                [this, &instr]() -> bool { return registers[instr.r1] > 0; },
+                "JGT");
+            break;
+
+        case JGE:
+            do_jump(
+                instr,
+                [this, &instr]() -> bool { return registers[instr.r1] >= 0; },
+                "JGE");
+            break;
+
         default:
             status = "Internal Error: Invalid OPCODE detected";
             break;
@@ -139,11 +188,28 @@ void VM_executor::do_instructions(std::function<void(void)> instr, const char *n
     }
 }
 
+void VM_executor::do_jump(Instruction const & instr, std::function<bool()> test, const char *name)
+{
+    do_instructions([this, &instr, test]() {
+        if (instr.loc >= program_size)
+        {
+            status = "branch beyond end of program";
+            return;
+        }
+        if ( test() )
+        {
+            pc = instr.loc;
+        }
+    }, name);
+}
+
 void VM_executor::trace(Instruction const & instr) const
 {
     cerr << "---------------------\n";
 
-    cerr << "PC: " << pc << "\n";
+    // by the time we get here PC has already been incremented from the
+    // instruction location.
+    cerr << "PC: " << (pc-1) << "\n";
 
     OPCODE op = instr.op;
     cerr << "op: " << (unsigned int)op << "\n";
@@ -182,6 +248,34 @@ void VM_executor::trace(Instruction const & instr) const
         << " <=> " << registers[instr.r2] << ")\n"; 
         break;
 
+    case JMP:
+        cerr << "JMP " << instr.loc << "\n";
+        break; 
+
+    case JEQ:
+        cerr << "JEQ r" << instr.r1 << " " << instr.loc  << " (" << registers[instr.r1] << ")\n";
+        break; 
+
+    case JNE:
+        cerr << "JNE r" << instr.r1 << " " << instr.loc << " (" << registers[instr.r1] << ")\n";
+        break; 
+
+    case JLT:
+        cerr << "JLT r" << instr.r1 << " " << instr.loc << " (" << registers[instr.r1] << ")\n";
+        break; 
+
+    case JLE:
+        cerr << "JLE r" << instr.r1 << " " << instr.loc << " (" << registers[instr.r1] << ")\n";
+        break; 
+
+    case JGT:
+        cerr << "JGT r" << instr.r1 << " " << instr.loc << " (" << registers[instr.r1] << ")\n";
+        break; 
+
+    case JGE:
+        cerr << "JGE r" << instr.r1 << " " << instr.loc << " (" << registers[instr.r1] << ")\n";
+        break; 
+
     default:
         cerr << "unknown op code: " << op << "\n";
     }
@@ -211,6 +305,19 @@ VM_executor::Instruction::Instruction(unsigned int code, bool verbose)
             decode_RRR(code);
             break;
 
+        case JMP:
+            decode_L(code);
+            break;
+
+        case JEQ:
+        case JNE:
+        case JLT:
+        case JLE:
+        case JGT:
+        case JGE:
+            decode_RL(code);
+            break;
+
         default:
             op = 0;
             break;
@@ -229,3 +336,17 @@ void VM_executor::Instruction::decode_RRR(unsigned int code)
     r2 = (code >> 8) & 0xFF;
     r3 = code & 0xFF;
 }
+
+void VM_executor::Instruction::decode_L(unsigned int code)
+{
+    loc = code & 0xFFFF;
+}
+
+void VM_executor::Instruction::decode_RL(unsigned int code)
+{
+    r1 = (code >> 16) & 0xFF;
+    loc = code & 0xFFFF;
+}
+
+
+

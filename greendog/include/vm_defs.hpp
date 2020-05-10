@@ -16,5 +16,12 @@ const constexpr OPCODE SUB = 7;
 const constexpr OPCODE MUL = 8;
 const constexpr OPCODE DIV = 9;
 const constexpr OPCODE CMP = 10;
+const constexpr OPCODE JMP = 11;
+const constexpr OPCODE JEQ = 12;
+const constexpr OPCODE JNE = 13;
+const constexpr OPCODE JLT = 14;
+const constexpr OPCODE JLE = 15;
+const constexpr OPCODE JGT = 16;
+const constexpr OPCODE JGE = 17;
 
 #endif

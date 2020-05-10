@@ -46,6 +46,41 @@ void VM::cmp(unsigned int r1, unsigned int r2, unsigned int r3)
     maybe_add_op_RRR(CMP, r1, r2, r3);
 }
 
+void VM::jmp(unsigned int loc)
+{
+    maybe_add_op_L(JMP, loc);
+}
+
+void VM::jeq(unsigned int reg, unsigned int loc)
+{
+    maybe_add_op_RL(JEQ, reg, loc);
+}
+
+void VM::jne(unsigned int reg, unsigned int loc)
+{
+    maybe_add_op_RL(JNE, reg, loc);
+}
+
+void VM::jlt(unsigned int reg, unsigned int loc)
+{
+    maybe_add_op_RL(JLT, reg, loc);
+}
+
+void VM::jle(unsigned int reg, unsigned int loc)
+{
+    maybe_add_op_RL(JLE, reg, loc);
+}
+    
+void VM::jgt(unsigned int reg, unsigned int loc)
+{
+    maybe_add_op_RL(JGT, reg, loc);
+}
+    
+void VM::jge(unsigned int reg, unsigned int loc)
+{
+    maybe_add_op_RL(JGE, reg, loc);
+}
+    
 VM_exec_status VM::exec(bool verbose)
 {
     if (!valid_program)
@@ -133,6 +168,18 @@ bool VM::check_address(unsigned int addr)
     return valid_program;
 }
 
+bool VM::check_location(unsigned int loc)
+{
+    if (valid_program)
+    {
+        if (loc >= MAX_PROGRAM_SIZE)
+        {
+            valid_program = false;
+        }
+    }
+    return valid_program;
+}
+
 void VM::maybe_add_op_RA(OPCODE op, unsigned int reg, unsigned int addr)
 {
     if (valid_program)
@@ -155,6 +202,31 @@ void VM::maybe_add_op_RRR(OPCODE op, unsigned int r1, unsigned int r2, unsigned 
                                   (r1 << 16) | 
                                   (r2 << 8) |
                                   r3;
+            program[program_size++] = instr;
+        }
+    }
+}
+
+void VM::maybe_add_op_L(OPCODE op, unsigned int loc)
+{
+    if (valid_program)
+    {
+        if (check_program_size() && check_location(loc))
+        {
+            unsigned int instr = (((unsigned int)op) << 24) | loc;
+            program[program_size++] = instr;
+        }
+    }
+
+}
+
+void VM::maybe_add_op_RL(OPCODE op, unsigned int reg, unsigned int loc)
+{
+    if (valid_program)
+    {
+        if (check_program_size() && check_register(reg) && check_location(loc))
+        {
+            unsigned int instr = (((unsigned int)op) << 24) | (reg << 16) | loc;
             program[program_size++] = instr;
         }
     }

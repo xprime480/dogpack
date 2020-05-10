@@ -18,7 +18,7 @@ private:
     unsigned int const *program;
     unsigned int program_size;
     int * heap;
-    unsigned int registers[MAX_REGISTERS];
+    int registers[MAX_REGISTERS];
 
     unsigned int pc;
     unsigned ticks;
@@ -26,8 +26,6 @@ private:
     std::string status;
 
     void reset();
-
-    void do_instructions(std::function<void(void)> instr, const char *name);
 
     struct Instruction
     {
@@ -38,12 +36,18 @@ private:
         unsigned int r2;
         unsigned int r3;
         unsigned int addr;
+        unsigned int loc;
 
     private:
     
         void decode_RA(unsigned int code);
         void decode_RRR(unsigned int code);
+        void decode_L(unsigned int code);
+        void decode_RL(unsigned int code);
     };
+
+    void do_instructions(std::function<void(void)> instr, const char *name);
+    void do_jump(Instruction const & instr, std::function<bool()> test, const char *name);
 
     void trace(Instruction const & instr) const;
 };
