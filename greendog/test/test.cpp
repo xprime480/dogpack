@@ -317,6 +317,65 @@ void conditional_jmp_suite(Runner &runner, void (VM::*op)(unsigned int, unsigned
     });
 }
 
+bool fibonacci_test(int arg, string const &label, int exp)
+{
+    VM vm;
+
+    // input:  heap 0 contains arg
+    // output:  heap 3 contains result initialized to -1 for error result
+
+    vm.set_heap(0, arg); 
+    vm.set_heap(1, 1);   //constant 1 
+    vm.set_heap(2, 0);   //constant 0 
+    vm.set_heap(3, -1);  // constant -1
+
+    vm.load(1, 0);  // 0 -- get arg to register
+    vm.jlt(1, 10);  // 1 -- check for negative number
+
+    vm.load(2, 1);   // 2 -- init accumulator
+    vm.load(3, 1);   // 3 -- constant in a register
+
+    vm.jmp(7);  // 4 -- top of loop
+
+    vm.mul(2, 1, 2);   // 5 -- multiply arg * acc => acc
+    vm.sub(1, 3, 1);   // 6 -- decrement arg
+    vm.jle(1, 9); // 7 -- jump when arg <= 0 -- we are done
+    vm.jmp(5);   // 8 back to top of loop
+
+    vm.store(2, 3);  // 9 store accumulator in memory 0
+
+    vm.cmp(1, 1, 1);  // 10 -- no op end of program target 
+
+    return EXPECT_RUN_OK(vm, label, [&vm, exp](bool verbose) -> bool {
+        if ( verbose )
+        {
+            vm.dump_heap(0, 4);
+        }
+        int act = vm.get_heap(3);
+        if ( verbose )
+        {
+            cerr << "Expected: " << exp << "; actual: " << act << "\n";
+        }
+        return act == exp;
+    });
+}
+
+void fibonacci_suite(Runner &runner)
+{
+    runner([&]() -> bool {
+        return fibonacci_test(-1, "Fibonacci -1", -1);
+    });
+    runner([&]() -> bool {
+        return fibonacci_test(0, "Fibonacci 0", 1);
+    });
+    runner([&]() -> bool {
+        return fibonacci_test(1, "Fibonacci 1", 1);
+    });
+    runner([&]() -> bool {
+        return fibonacci_test(5, "Fibonacci 5", 120);
+    });
+}
+
 int main(void)
 {
     Runner runner;
@@ -337,6 +396,8 @@ int main(void)
     conditional_jmp_suite(runner, &VM::jle, "JLE", true, true, false);
     conditional_jmp_suite(runner, &VM::jgt, "JGT", false, false, true);
     conditional_jmp_suite(runner, &VM::jge, "JGE", false, true, true);
+
+    fibonacci_suite(runner);
 
     return runner.report();
 }
