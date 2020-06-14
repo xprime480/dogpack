@@ -394,7 +394,7 @@ void jmp_suite(Runner &runner, void (VM::*op)(const std::string &), const char *
     });
 }
 
-bool fibonacci_test(int arg, string const &label, int res)
+bool factorial_test(int arg, string const &label, int res)
 {
     VM vm;
     vm.push(arg);
@@ -429,19 +429,40 @@ bool fibonacci_test(int arg, string const &label, int res)
     return EXPECT_VALUE(vm, label, res);
 }
 
+void factorial_suite(Runner &runner)
+{
+    runner([&]() -> bool {
+        return factorial_test(-1, "factorial -1", -1);
+    });
+    runner([&]() -> bool {
+        return factorial_test(0, "factorial 0", 1);
+    });
+    runner([&]() -> bool {
+        return factorial_test(1, "factorial 1", 1);
+    });
+    runner([&]() -> bool {
+        return factorial_test(5, "factorial 5", 120);
+    });
+}
+
+bool fibonacci_test(int arg, string const &label, int res)
+{
+    VM vm;
+    vm.push(-1);
+
+    return EXPECT_VALUE(vm, label, res);
+}
+
 void fibonacci_suite(Runner &runner)
 {
     runner([&]() -> bool {
-        return fibonacci_test(-1, "Fibonacci -1", -1);
+        return fibonacci_test(0, "Fibonacci 0", -1);
     });
     runner([&]() -> bool {
-        return fibonacci_test(0, "Fibonacci 0", 1);
+        return fibonacci_test(1, "fibonacci 1", 1);
     });
     runner([&]() -> bool {
-        return fibonacci_test(1, "Fibonacci 1", 1);
-    });
-    runner([&]() -> bool {
-        return fibonacci_test(5, "Fibonacci 5", 120);
+        return fibonacci_test(5, "fibonacci 8", 21);
     });
 }
 
@@ -488,6 +509,7 @@ int main(void)
     jmp_suite(runner, &VM::jgt, "JGT", false, false, true, true);
     jmp_suite(runner, &VM::jge, "JGE", false, true, true, true);
 
+    factorial_suite(runner);
     fibonacci_suite(runner);
 
     return runner.report();
