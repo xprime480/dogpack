@@ -447,8 +447,55 @@ void factorial_suite(Runner &runner)
 
 bool fibonacci_test(int arg, string const &label, int res)
 {
+    /* TODO:  This program does not leave the stack clean.  VM help is needed */
+    
     VM vm;
+
+    // init the stack
+    vm.push(arg);
+
+    // test for bad argument (<= 0)
+    vm.dup();
+    vm.push(0);
+    vm.cmp();
+    vm.jle("ERROR");
+
+    // init local variables
+    vm.push(1);  // b
+    vm.push(1);  // a
+
+    // go to loop test
+    vm.jmp("LOOP_TEST");
+
+    // start the loop
+    vm.label("TOP_OF_LOOP");
+
+    // update local variables and test
+    vm.dupn(3);
+    vm.dupn(3);
+    vm.dupn(2);
+    vm.add();
+    vm.swap();
+
+    // decrement arg and break when 0;
+    vm.label("LOOP_TEST");
+    vm.dupn(3);
+    vm.push(1);
+    vm.sub();
+    vm.dup();
+    vm.jeq("DONE");
+    vm.jmp("TOP_OF_LOOP");
+
+    // handle the error case
+    vm.label("ERROR");
     vm.push(-1);
+    vm.jmp("EXIT");
+
+    // clean up the stack for normal return
+    vm.label("DONE");
+    vm.pop();
+
+    vm.label("EXIT");
 
     return EXPECT_VALUE(vm, label, res);
 }
@@ -462,7 +509,7 @@ void fibonacci_suite(Runner &runner)
         return fibonacci_test(1, "fibonacci 1", 1);
     });
     runner([&]() -> bool {
-        return fibonacci_test(5, "fibonacci 8", 21);
+        return fibonacci_test(8, "fibonacci 8", 21);
     });
 }
 
