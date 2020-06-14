@@ -317,7 +317,7 @@ void conditional_jmp_suite(Runner &runner, void (VM::*op)(unsigned int, unsigned
     });
 }
 
-bool fibonacci_test(int arg, string const &label, int exp)
+bool factorial_test(int arg, string const &label, int exp)
 {
     VM vm;
 
@@ -360,19 +360,81 @@ bool fibonacci_test(int arg, string const &label, int exp)
     });
 }
 
+void factorial_suite(Runner &runner)
+{
+    runner([&]() -> bool {
+        return factorial_test(-1, "Factorial -1", -1);
+    });
+    runner([&]() -> bool {
+        return factorial_test(0, "Factorial 0", 1);
+    });
+    runner([&]() -> bool {
+        return factorial_test(1, "Factorial 1", 1);
+    });
+    runner([&]() -> bool {
+        return factorial_test(5, "Factorial 5", 120);
+    });
+}
+
+bool fibonacci_test(int arg, string const &label, int exp)
+{
+    VM vm;
+
+    // input:  heap 0 contains arg
+    // output:  heap 3 contains result initialized to -1 for error result
+
+    vm.set_heap(0, arg); 
+    vm.set_heap(1, 1);   //constant 1 
+    vm.set_heap(3, -1);  // constant -1 : error flag
+ 
+    vm.load(1, 0);  // 0 -- get arg to register
+    vm.jle(1, 12);  // 1 -- check for bad argument
+
+    vm.load(2, 1);   // 2 -- local variable 'a'
+    vm.load(3, 1);   // 3 -- local variable 'b'
+    vm.load(4, 1);   // 4 -- constant 1;
+    vm.jmp(9);  // 5 -- loop test
+
+LOOP_TOP:
+    vm.store(3, 2);    // 6 -- tmp = b
+    vm.add(2, 3, 3);   // 7 -- b = a + b
+    vm.load(2, 2);     // 8 -- a = tmp
+
+LOOP_TEST:
+    vm.sub(1, 4, 1);   // 9 -- arg = arg - 1
+    vm.jle(1, 13);    // 10 -- done when arg <= 0
+    vm.jmp(6);         // 11 -- LOOP_TOP
+
+ERROR:
+    vm.load(2, 3);     // 12 -- rv = -1
+
+END:
+    vm.store(2, 3);    // 13 -- return value in heap[3]
+
+    return EXPECT_RUN_OK(vm, label, [&vm, exp](bool verbose) -> bool {
+        if ( verbose )
+        {
+            vm.dump_heap(0, 4);
+        }
+        int act = vm.get_heap(3);
+        if ( verbose )
+        {
+            cerr << "Expected: " << exp << "; actual: " << act << "\n";
+        }
+        return act == exp;
+    });
+}
+
 void fibonacci_suite(Runner &runner)
 {
     runner([&]() -> bool {
-        return fibonacci_test(-1, "Fibonacci -1", -1);
-    });
-    runner([&]() -> bool {
-        return fibonacci_test(0, "Fibonacci 0", 1);
+        return fibonacci_test(0, "Fibonacci 0", -1);
     });
     runner([&]() -> bool {
         return fibonacci_test(1, "Fibonacci 1", 1);
     });
     runner([&]() -> bool {
-        return fibonacci_test(5, "Fibonacci 5", 120);
+        return fibonacci_test(8, "Fibonacci 8", 21);
     });
 }
 
@@ -397,6 +459,7 @@ int main(void)
     conditional_jmp_suite(runner, &VM::jgt, "JGT", false, false, true);
     conditional_jmp_suite(runner, &VM::jge, "JGE", false, true, true);
 
+    factorial_suite(runner);
     fibonacci_suite(runner);
 
     return runner.report();
