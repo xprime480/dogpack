@@ -20,6 +20,7 @@ public:
     void pop();
     void dup();
     void dupn(int which);
+    void dropn(int which);
     void swap();
     void add();
     void sub();

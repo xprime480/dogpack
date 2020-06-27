@@ -37,6 +37,14 @@ void VM::dupn(int which)
     }
 }
 
+void VM::dropn(int which)
+{
+    if (maybe_add_op(DROPN))
+    {
+        maybe_add_arg(which);
+    }
+}
+
 void VM::swap()
 {
     maybe_add_op(SWAP);

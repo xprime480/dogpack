@@ -90,6 +90,7 @@ bool dupn_zero()
     vm.dupn(0);
     return EXPECT_ERROR(vm, "DupN Zero");
 }
+
 bool dupn_too_few()
 {
     VM vm;
@@ -128,6 +129,70 @@ bool dupn_last()
     return EXPECT_VALUE(vm, "DupN Last", 10);
 }
 
+bool dropn_from_empty()
+{
+    VM vm;
+    vm.dropn(55);
+    return EXPECT_ERROR(vm, "DropN from Empty");
+}
+
+bool dropn_negative()
+{
+    VM vm;
+    vm.push(0);
+    vm.dropn(-1);
+    return EXPECT_ERROR(vm, "DropN Negative");
+}
+
+bool dropn_zero()
+{
+    VM vm;
+    vm.push(0);
+    vm.dropn(0);
+    return EXPECT_ERROR(vm, "DropN Zero");
+}
+
+bool dropn_too_few()
+{
+    VM vm;
+    vm.push(0);
+    vm.dropn(5);
+    return EXPECT_ERROR(vm, "DropN Too Few");
+}
+
+bool dropn_first()
+{
+    VM vm;
+    vm.push(10);
+    vm.push(20);
+    vm.push(30);
+    vm.dropn(1);
+    vm.add();
+    return EXPECT_VALUE(vm, "DropN First", 30);
+}
+
+bool dropn_middle()
+{
+    VM vm;
+    vm.push(10);
+    vm.push(20);
+    vm.push(30);
+    vm.dropn(2);
+    vm.add();
+    return EXPECT_VALUE(vm, "DropN Middle", 40);
+}
+
+bool dropn_last()
+{
+    VM vm;
+    vm.push(10);
+    vm.push(20);
+    vm.push(30);
+    vm.dropn(3);
+    vm.add();
+    return EXPECT_VALUE(vm, "DropN Last", 50);
+}
+
 void stack_suite(Runner &runner)
 {
     runner(push);
@@ -139,10 +204,19 @@ void stack_suite(Runner &runner)
 
     runner(dupn_from_empty);
     runner(dupn_negative);
+    runner(dupn_zero);
     runner(dupn_too_few);
     runner(dupn_first);
     runner(dupn_middle);
     runner(dupn_last);
+
+    runner(dropn_from_empty);
+    runner(dropn_negative);
+    runner(dropn_zero);
+    runner(dropn_too_few);
+    runner(dropn_first);
+    runner(dropn_middle);
+    runner(dropn_last);
 }
 
 bool add_too_few()
@@ -471,11 +545,14 @@ bool fibonacci_test(int arg, string const &label, int res)
     vm.label("TOP_OF_LOOP");
 
     // update local variables and test
+
     vm.dupn(3);
     vm.dupn(3);
     vm.dupn(2);
     vm.add();
     vm.swap();
+    vm.dropn(5);
+    vm.dropn(4);
 
     // decrement arg and break when 0;
     vm.label("LOOP_TEST");
@@ -484,6 +561,7 @@ bool fibonacci_test(int arg, string const &label, int res)
     vm.sub();
     vm.dup();
     vm.jeq("DONE");
+    vm.dropn(4);
     vm.jmp("TOP_OF_LOOP");
 
     // handle the error case

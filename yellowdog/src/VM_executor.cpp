@@ -83,6 +83,26 @@ VM_exec_status VM_executor::exec(bool verbose)
             is_stack_available("DUPN");
             break;
 
+        case DROPN:
+            do_instructions(
+                [this]() {
+                    int target;
+                    memcpy((void *)&target, (void *)&program[pc], sizeof(int));
+                    pc += sizeof(int);
+                    if (target <= 0 || target > (int)sp)
+                    {
+                        status = "DROPN index out of range";
+                        return;
+                    }
+                    for (unsigned int i = sp-target ; i < sp ; ++i)
+                    {
+                        stack[i] = stack[i+1];
+                    }
+                    --sp;
+                },
+                1, 0, "DROPN");
+            break;
+
         case SWAP:
             do_instructions(
                 [this]() {
@@ -332,6 +352,14 @@ void VM_executor::trace(unsigned int pc, int *stack, unsigned int sp) const
         int val;
         memcpy((void *)&val, (void *)&program[pc], sizeof(int));
         cerr << "DUPN " << val << "\n";
+        break;
+    }
+
+    case DROPN:
+    {
+        int val;
+        memcpy((void *)&val, (void *)&program[pc], sizeof(int));
+        cerr << "DROPN " << val << "\n";
         break;
     }
 

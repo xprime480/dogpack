@@ -20,5 +20,6 @@ constexpr OPCODE JLT = 14;
 constexpr OPCODE JLE = 15;
 constexpr OPCODE JGT = 16;
 constexpr OPCODE JGE = 17;
+constexpr OPCODE DROPN = 18;
 
 #endif

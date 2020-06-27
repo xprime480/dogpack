@@ -23,6 +23,7 @@ are unaffected by the operation.
 | `POP`  | `val S` | `S` | |
 | `DUP`  | `val S` | `val val S` | |
 | `DUPN n`  | `x1 x2 ... xn S` | `xn x1 x2 ... xn S` | duplicate Nth value to top of stack |
+| `DROP n`  | `x1 x2 ... xn S` | `x1 x2 ... S` | drop Nth value from top of stack |
 | `SWAP` | `x y S` | `y x S` | |
 | `ADD` | `x y S` | `y+x S` | |
 | `SUB` | `x y S` | `y-x S` | |
@@ -50,7 +51,7 @@ normally, the top of the stack is printed.  It is an error if there is no value 
 The following conditions are reported errors:
 
 - `POP`, `DUP`, conditional `Jxx` instruction while stack is empty
-- `DUPN n` when n outside range 1 .. stacksize
+- `DUPN n`, `DROP n` when n outside range [1 .. stacksize]
 - `PUSH` or `DUP` or `DUPN` when stack is full
 - `ADD`, `SUB`, `MUL`, `DIV`, `SWAP`, `CMP` instruction with fewer than two values on the stack.
 - `DIV` with `x` equal to 0
